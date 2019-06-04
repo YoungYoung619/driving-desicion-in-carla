@@ -32,15 +32,18 @@ def check_whether_respawn_actors(world, vehicles):
         time.sleep(20)
 
 def make_vehicle_random_drive(vehicles):
-    """a thread make vehicle random drive 5s and autopilot 5s"""
+    """a thread make vehicle random drive 3s and autopilot 10s"""
     vehicle = vehicles[0]
     while True:
-        time.sleep(5)
+        time.sleep(10)
         logger.info('Start random drive...')
         vehicle.set_autopilot(False)
         steer = random.uniform(-0.2,0.2)
         throttle = random.uniform(0,1)
         vehicle.apply_control(carla.VehicleControl(throttle=throttle, steer=steer))
+        time.sleep(3)
+        logger.info('Start autopilot...')
+        vehicle.set_autopilot(True)
 
 
 if __name__ == '__main__':
@@ -82,7 +85,7 @@ if __name__ == '__main__':
         on_collision = collision_q.get()
 
         if on_collision:
-            respawn_actors(world, vehicles)
+            respawn_actors(world, [vehicles[0]])
             collision_q.clear()
 
         cv2.imshow('Color', bgr)
