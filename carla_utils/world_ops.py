@@ -8,7 +8,7 @@ some world query and operation tools
 Author：Team Li
 """
 import random, time
-from utils.logging import logger
+from carla_utils.logging import logger
 
 """
 #####  User Recommended Functions  ####
@@ -94,35 +94,96 @@ def respawn_actors(world, actors):
     for vehicle in actors:
         spawn_points = list(world.get_map().get_spawn_points())
         index = random.randint(0, (len(spawn_points))-1)
+        spawn_points[index].location.z = spawn_points[index].location.z - 0.1
         vehicle.set_transform(spawn_points[index])
         logger.info('Respawn '+str(vehicle)+' in '+str(spawn_points[index]))
 
 
-def try_spawn_random_vehicle_at(world, transform):
+def try_spawn_random_vehicle_at(world, transform, autopilot=True):
     blueprints = world.get_blueprint_library().filter('vehicle.*')
     blueprint = random.choice(blueprints)
     if blueprint.has_attribute('color'):
         color = random.choice(blueprint.get_attribute('color').recommended_values)
         blueprint.set_attribute('color', color)
-    blueprint.set_attribute('role_name', 'autopilot')
+
+    if autopilot:
+        blueprint.set_attribute('role_name', 'autopilot')
+    else:
+        blueprint.set_attribute('role_name', 'egopilot')
     vehicle = world.try_spawn_actor(blueprint, transform)
-    if vehicle is not None:
-        vehicle.set_autopilot()
-        logger.info('spawned %r at %s' % (vehicle.type_id, transform.location))
+    if (vehicle is not None) and (autopilot):
+        vehicle.set_autopilot(True)
+        logger.info('spawned a autopilot %r at %s' % (vehicle.type_id, transform.location))
+        return True
+    elif (vehicle is not None) and (not autopilot):
+        vehicle.set_autopilot(False)
+        logger.info('spawned a egopilot %r at %s' % (vehicle.type_id, transform.location))
         return True
     return False
 
-def spawn_vehicles(world, number):
-    count = number
-    spawn_points = list(world.get_map().get_spawn_points())
-    random.shuffle(spawn_points)
-    for spawn_point in spawn_points:
-        if try_spawn_random_vehicle_at(world, spawn_point):
-            count -= 1
-        if count <= 0:
-            break
 
-    while count > 0:
-        time.sleep(500)
-        if try_spawn_random_vehicle_at(world, random.choice(spawn_points)):
-            count -= 1
+def spawn_vehicles(world, n_autopilots, n_egopilots):
+    """spawn some vehicles in carla world
+    Args:
+        n_autopilots: the number of autopilot vehicles spawned in carla world
+        n_egopilots: the number of egopilot vehicles spawned in calla world
+    """
+    if n_autopilots > 0:
+        count = n_autopilots
+        spawn_points = list(world.get_map().get_spawn_points())
+        random.shuffle(spawn_points)
+        for spawn_point in spawn_points:
+            if try_spawn_random_vehicle_at(world, spawn_point):
+                count -= 1
+            if count <= 0:
+                break
+
+        while count > 0:
+            time.sleep(500)
+            if try_spawn_random_vehicle_at(world, random.choice(spawn_points)):
+                count -= 1
+
+    if n_egopilots > 0:
+        count = n_egopilots
+        spawn_points = list(world.get_map().get_spawn_points())
+        random.shuffle(spawn_points)
+        for spawn_point in spawn_points:
+            if try_spawn_random_vehicle_at(world, spawn_point, autopilot=False):
+                count -= 1
+            if count <= 0:
+                break
+
+        while count > 0:
+            time.sleep(500)
+            if try_spawn_random_vehicle_at(world, random.choice(spawn_points), autopilot=False):
+                count -= 1
+
+
+def get_all_autopilots(world):
+    """get all the autopilot vehicles in carla world
+    Return:
+        a list represents all the autopilot actors
+    """
+    autopilots = []
+
+    actor_list = world.get_actors()
+    vehicles = list(actor_list.filter('vehicle*'))
+    for vehicle in vehicles:
+        if vehicle.attributes['role_name'] == 'autopilot':
+            autopilots.append(vehicle)
+    return autopilots
+
+
+def get_all_egopilots(world):
+    """get all the egopilots vehicles in carla world
+    Return:
+        a list represents all the egopilots actors
+    """
+    egopilots = []
+
+    actor_list = world.get_actors()
+    vehicles = list(actor_list.filter('vehicle*'))
+    for vehicle in vehicles:
+        if vehicle.attributes['role_name'] == 'egopilot':
+            egopilots.append(vehicle)
+    return egopilots

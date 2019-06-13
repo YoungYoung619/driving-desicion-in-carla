@@ -9,7 +9,7 @@ Author：Team Li
 """
 import numpy as np
 import sys, glob, os
-from utils.logging import logger
+from carla_utils.logging import logger
 
 try:
     sys.path.append(glob.glob('**/carla-*%d.%d-%s.egg' % (
@@ -212,6 +212,11 @@ class semantic_camera(object):
 
 
 class collision_query(object):
+    """a sensor offer user to query whether collision
+    Example:
+        collision_sensor_config = {'data_type': 'sensor.other.collision','attach_to': vehicles[0]}
+        collision_q = collision_query(world, collision_sensor_config)
+    """
     def __init__(self, world, sensor_config):
         """init a collision query sensor"""
         assert sensor_config['data_type'] == 'sensor.other.collision'
@@ -239,6 +244,35 @@ class collision_query(object):
         """"""
         self.whether_collision = False
 
+class lane_invasion_query(object):
+    def __init__(self, world, sensor_config):
+        """init a lan invasion query sensor"""
+        assert sensor_config['data_type'] == 'sensor.other.lane_detector'
+        blueprint = world.get_blueprint_library().find(sensor_config['data_type'])
+
+        self.sensor = world.spawn_actor(blueprint, carla.Transform(), attach_to=sensor_config['attach_to'])
+        self.sensor.listen(lambda event: self.__on_invasion(event))
+
+        self.lane_invasion = False
+
+
+    def __on_invasion(self, event):
+        """ would be call when ego vehicle collision"""
+        text = ['%r' % str(x).split()[-1] for x in set(event.crossed_lane_markings)]
+        if text[0] == "'Solid'":
+            self.lane_invasion = True
+            text = 'Crossed line %s' % ' and '.join(text)
+            logger.info(text)
+
+
+    def get(self):
+        """get the flag indicating whether ego vehicle collision"""
+        return self.lane_invasion
+
+
+    def clear(self):
+        """"""
+        self.lane_invasion = False
 
 
 class sensorQuery(object):
