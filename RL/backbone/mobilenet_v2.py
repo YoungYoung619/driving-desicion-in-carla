@@ -178,15 +178,23 @@ def mobilenetv2(inputs, is_training):
         net = res_block(net, exp, 128, 1, is_training, name='res6_3')
         endPoints['layer_14'] = net
 
-        net = res_block(net, exp, 64, 2, is_training, name='res7_1')  # size/32
+        net = res_block(net, exp, 256, 2, is_training, name='res7_1')  # size/32
         endPoints['layer_15'] = net
-        net = res_block(net, exp, 48, 1, is_training, name='res7_2')
+        net = res_block(net, exp, 256, 1, is_training, name='res7_2')
         endPoints['layer_16'] = net
-        net = res_block(net, exp, 36, 1, is_training, name='res7_3')
+
+        net = res_block(net, 3, 512, 1, is_training, name='res8_1')
         endPoints['layer_17'] = net
 
-        # net = res_block(net, exp, 320, 1, is_training, name='res8_1')
-        # endPoints['layer_18'] = net
+        net = res_block(net, 3, 256, 1, is_training, name='res9_1')
+        endPoints['layer_18'] = net
+
+        net = res_block(net, 3, 128, 1, is_training, name='res10_1')
+        endPoints['layer_19'] = net
+
+        net = res_block(net, 3, 64, 1, is_training, name='res11_1')
+        endPoints['layer_20'] = net
+
         #
         # net = pwise_block(net, 1280, is_training, name='conv9_1')
         # endPoints['layer_19'] = net
@@ -197,10 +205,10 @@ def mobilenetv2(inputs, is_training):
 from RL.backbone.bp_net import bp
 
 if __name__ == '__main__':
-    x = tf.placeholder(shape=(None, 224, 224, 3), dtype=tf.float32)
+    x = tf.placeholder(shape=(None, 139, 209, 3), dtype=tf.float32)
     action = tf.placeholder(shape=(None, 3), dtype=tf.float32)
     feat, endpoints = mobilenetv2(x, is_training=True)
     feat_flat = tf.reduce_max(feat, axis=[1, 2])
     state_action = tf.concat([feat_flat, action], axis=-1)
-    out = tf.reshape(bp(state_action, is_training=True), [-1])
+    out = tf.reshape(bp(state_action), [-1])
     pass
