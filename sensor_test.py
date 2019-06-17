@@ -11,8 +11,8 @@ import glob, os, sys, time
 from threading import Thread
 import cv2
 
-from utils.world_ops import *
-from utils.sensor_ops import *
+from carla_utils.world_ops import *
+from carla_utils.sensor_ops import *
 
 try:
     sys.path.append(glob.glob('**/carla-*%d.%d-%s.egg' % (
@@ -45,7 +45,7 @@ if __name__ == '__main__':
     vehicles = list(actor_list.filter('vehicle*'))
 
     bgr_camera_config = {'data_type': 'sensor.camera.rgb', 'image_size_x': 418,
-                        'image_size_y': 278, 'fov': 110, 'sensor_tick': 0.02,
+                        'image_size_y': 278, 'fov': 110, 'sensor_tick': 0.05,
                         'transform': carla.Transform(carla.Location(x=0.8, z=1.7)),
                         'attach_to':vehicles[0]}
     bgr_sensor = bgr_camera(world, bgr_camera_config)
