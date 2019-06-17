@@ -8,8 +8,8 @@ Description :
 Author：Team Li
 """
 import sys, glob, os
-from utils.logging import logger
-from utils.world_ops import *
+from carla_utils.logging import logger
+from carla_utils.world_ops import *
 
 try:
     sys.path.append(glob.glob('**/carla-*%d.%d-%s.egg' % (
