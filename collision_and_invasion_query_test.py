@@ -64,8 +64,8 @@ if __name__ == '__main__':
     egopilots = get_all_egopilots(world)
     a = autopilots + egopilots
 
-    bgr_camera_config = {'data_type': 'sensor.camera.rgb', 'image_size_x': 800,
-                        'image_size_y': 512, 'fov': 110, 'sensor_tick': 0.02,
+    bgr_camera_config = {'data_type': 'sensor.camera.rgb', 'image_size_x': 209,
+                        'image_size_y': 139, 'fov': 110, 'sensor_tick': 0.02,
                         'transform': carla.Transform(carla.Location(x=0.8, z=1.7)),
                         'attach_to':autopilots[0]}
     bgr_sensor = bgr_camera(world, bgr_camera_config)
