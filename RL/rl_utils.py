@@ -146,6 +146,7 @@ def soft_copy_a2b(vars_a, vars_b, tau=1e-3):
     copy_ops = tf.group(*copy_ops)
     return copy_ops
 
+
 if __name__ == '__main__':
     memorys = memory_pooling(maxlen=100)
 
