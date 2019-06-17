@@ -96,11 +96,13 @@ def respawn_actors(world, actors):
         index = random.randint(0, (len(spawn_points))-1)
         spawn_points[index].location.z = spawn_points[index].location.z - 0.1
         vehicle.set_transform(spawn_points[index])
-        logger.info('Respawn '+str(vehicle)+' in '+str(spawn_points[index]))
+        #logger.info('Respawn '+str(vehicle)+' in '+str(spawn_points[index]))
 
 
 def try_spawn_random_vehicle_at(world, transform, autopilot=True):
     blueprints = world.get_blueprint_library().filter('vehicle.*')
+    if not autopilot:
+        blueprints = [x for x in blueprints if int(x.get_attribute('number_of_wheels')) == 4]
     blueprint = random.choice(blueprints)
     if blueprint.has_attribute('color'):
         color = random.choice(blueprint.get_attribute('color').recommended_values)
@@ -122,12 +124,34 @@ def try_spawn_random_vehicle_at(world, transform, autopilot=True):
     return False
 
 
-def spawn_vehicles(world, n_autopilots, n_egopilots):
+def try_spawn_random_pedestrain_at(world, transform):
+    blueprints = world.get_blueprint_library().filter('walker*')
+    blueprint = random.choice(blueprints)
+    if blueprint.has_attribute('color'):
+        color = random.choice(blueprint.get_attribute('color').recommended_values)
+        blueprint.set_attribute('color', color)
+
+    blueprint.set_attribute('role_name', 'pedestrain')
+
+    pedestrain = world.try_spawn_actor(blueprint, transform)
+    if (pedestrain is not None):
+        logger.info('spawned a pedestrain %r at %s' % (pedestrain.type_id, transform.location))
+        return True
+    return False
+
+
+def spawn_vehicles(world, n_autopilots, n_egopilots, n_pedestrains=0):
     """spawn some vehicles in carla world
     Args:
         n_autopilots: the number of autopilot vehicles spawned in carla world
+        n_pedestrains: the number of pedestrains spawned in carla world
         n_egopilots: the number of egopilot vehicles spawned in calla world
     """
+    try:
+        assert n_pedestrains==0
+    except:
+        raise NotImplementedError('not support pedestrain now')
+
     if n_autopilots > 0:
         count = n_autopilots
         spawn_points = list(world.get_map().get_spawn_points())
@@ -141,6 +165,21 @@ def spawn_vehicles(world, n_autopilots, n_egopilots):
         while count > 0:
             time.sleep(500)
             if try_spawn_random_vehicle_at(world, random.choice(spawn_points)):
+                count -= 1
+
+    if n_pedestrains > 0:
+        count = n_pedestrains
+        spawn_points = list(world.get_map().get_spawn_points())
+        random.shuffle(spawn_points)
+        for spawn_point in spawn_points:
+            if try_spawn_random_pedestrain_at(world, spawn_point):
+                count -= 1
+            if count <= 0:
+                break
+
+        while count > 0:
+            time.sleep(500)
+            if try_spawn_random_pedestrain_at(world, random.choice(spawn_points)):
                 count -= 1
 
     if n_egopilots > 0:
@@ -187,3 +226,17 @@ def get_all_egopilots(world):
         if vehicle.attributes['role_name'] == 'egopilot':
             egopilots.append(vehicle)
     return egopilots
+
+
+def destroy_all_actors(world):
+    """destroy all actors"""
+    actor_list = world.get_actors()
+    vehicles = list(actor_list.filter('vehicle*'))
+    for vehicle in vehicles:
+        vehicle.destroy()
+    logger.info('Destroy all vehicles...')
+
+    sensors = list(actor_list.filter('sensor*'))
+    for sensor in sensors:
+        sensor.destroy()
+    logger.info('Destroy all sensors...')

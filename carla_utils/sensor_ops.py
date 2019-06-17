@@ -230,9 +230,9 @@ class collision_query(object):
 
     def __on_collision(self, event):
         """ would be call when ego vehicle collision"""
+        #if event.other_actor.type_id != 'static.road': ## avoid the collision of static road
         self.whether_collision = True
-
-        logger.info('collision obj:%s'%str(event.other_actor))
+        #logger.info('collision obj:%s'%str(event.other_actor))
 
 
     def get(self):
@@ -245,6 +245,7 @@ class collision_query(object):
         self.whether_collision = False
 
 class lane_invasion_query(object):
+    """a sensor query whether lane invasion"""
     def __init__(self, world, sensor_config):
         """init a lan invasion query sensor"""
         assert sensor_config['data_type'] == 'sensor.other.lane_detector'
@@ -261,8 +262,8 @@ class lane_invasion_query(object):
         text = ['%r' % str(x).split()[-1] for x in set(event.crossed_lane_markings)]
         if text[0] == "'Solid'":
             self.lane_invasion = True
-            text = 'Crossed line %s' % ' and '.join(text)
-            logger.info(text)
+            # text = 'Crossed line %s' % ' and '.join(text)
+            # logger.info(text)
 
 
     def get(self):
@@ -275,10 +276,29 @@ class lane_invasion_query(object):
         self.lane_invasion = False
 
 
-class sensorQuery(object):
-    """a query tool for sensor data and information"""
-    def __init__(self):
-        pass
+class obstacle_ahead_query():
+    """a sensor offer user to query whether there a obstacle ahead of ego-vehicle"""
+    def __init__(self, world, sensor_config):
+        """init a lan invasion query sensor"""
+        assert sensor_config['data_type'] == 'sensor.other.obstacle'
+        blueprint = world.get_blueprint_library().find(sensor_config['data_type'])
 
-    def get_sensors_in(vehicle):
-        pass
+        self.sensor = world.spawn_actor(blueprint, carla.Transform(), attach_to=sensor_config['attach_to'])
+        self.sensor.listen(lambda event: self.__obstacle_ahead(event))
+
+        self.obstacle_ahead = False
+
+
+    def __obstacle_ahead(self, event):
+        """ would be call when an obstacle ahead of ego vehicle"""
+        self.obstacle_ahead = True
+
+
+    def get(self):
+        """get the flag indicating whether there is an obstacle ahead of ego vehicle"""
+        return self.obstacle_ahead
+
+
+    def clear(self):
+        """clear the flag"""
+        self.obstacle_ahead = False
