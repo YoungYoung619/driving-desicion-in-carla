@@ -10,8 +10,11 @@ Author：Team Li
 import tensorflow as tf
 import numpy as np
 
+from RL.backbone.vgg16 import *
 from RL.backbone.mobilenet_v2 import mobilenetv2
 from RL.backbone.bp_net import bp
+
+slim = tf.contrib.slim
 
 class critic(object):
     def __init__(self):
@@ -53,10 +56,11 @@ class actor(object):
         pass
 
 
-    def build_graph(self, state, n_action_space, is_training, var_scope, action_range=None):
+    def build_graph(self, img_state, other_state, n_action_space, is_training, var_scope, action_range=None):
         """build a deterministic policy net π(s)
         Args:
-            state: generally, a tensor with the shape(bs, h, w, c)
+            img_state: generally, a tensor with the shape(bs, h, w, c)
+            other_state: generally, a tensor with the shape(bs, n_dims)
             n_action_space: an int, represents the number of action space
             is_training: indicate whether training or not
             var_scope: tensorflow scope
@@ -69,16 +73,19 @@ class actor(object):
             assert len(action_range) == n_action_space
 
         with tf.variable_scope(var_scope) as scope:
-            bs = tf.shape(state)[0]
+            bs = tf.shape(img_state)[0]
 
             ## get the abstract of state
-            feat, endpoints = mobilenetv2(inputs=state, is_training=is_training)
+            with slim.arg_scope(vgg_arg_scope()):
+                outputs, end_points = mobilenetv2(inputs=img_state, n_dims=11, is_training=is_training)
 
             ## get flaten state abstract
-            feat_flat = tf.reduce_max(feat, axis=[1, 2])
+            # feat_flat = tf.reduce_max(outputs, axis=[1, 2])
+
+            feat = tf.concat([slim.softmax(outputs), other_state], axis=-1)
 
             ## action
-            self.action = tf.reshape(bp(feat_flat, out_size=n_action_space), shape=[bs, n_action_space])
+            self.action = tf.reshape(bp(feat, out_size=n_action_space), shape=[bs, n_action_space])
 
             if action_range:
                 min_a = np.expand_dims(np.array(action_range)[:,0], axis=0)
@@ -89,5 +96,5 @@ class actor(object):
             ## get trainable vars
             self.trainable_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope=scope.name)
 
-            return self.action, self.trainable_vars
+            return outputs, self.action, self.trainable_vars
 
