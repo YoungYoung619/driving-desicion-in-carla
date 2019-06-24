@@ -276,29 +276,29 @@ class lane_invasion_query(object):
         self.lane_invasion = False
 
 
-class obstacle_ahead_query():
-    """a sensor offer user to query whether there a obstacle ahead of ego-vehicle"""
-    def __init__(self, world, sensor_config):
-        """init a lan invasion query sensor"""
-        assert sensor_config['data_type'] == 'sensor.other.obstacle'
-        blueprint = world.get_blueprint_library().find(sensor_config['data_type'])
-
-        self.sensor = world.spawn_actor(blueprint, carla.Transform(), attach_to=sensor_config['attach_to'])
-        self.sensor.listen(lambda event: self.__obstacle_ahead(event))
-
-        self.obstacle_ahead = False
-
-
-    def __obstacle_ahead(self, event):
-        """ would be call when an obstacle ahead of ego vehicle"""
-        self.obstacle_ahead = True
-
-
-    def get(self):
-        """get the flag indicating whether there is an obstacle ahead of ego vehicle"""
-        return self.obstacle_ahead
-
-
-    def clear(self):
-        """clear the flag"""
-        self.obstacle_ahead = False
+# class obstacle_ahead_query():
+#     """a sensor offer user to query whether there a obstacle ahead of ego-vehicle"""
+#     def __init__(self, world, sensor_config):
+#         """init a lan invasion query sensor"""
+#         assert sensor_config['data_type'] == 'sensor.other.obstacle'
+#         blueprint = world.get_blueprint_library().find(sensor_config['data_type'])
+#
+#         self.sensor = world.spawn_actor(blueprint, carla.Transform(), attach_to=sensor_config['attach_to'])
+#         self.sensor.listen(lambda event: self.__obstacle_ahead(event))
+#
+#         self.obstacle_ahead = False
+#
+#
+#     def __obstacle_ahead(self, event):
+#         """ would be call when an obstacle ahead of ego vehicle"""
+#         self.obstacle_ahead = True
+#
+#
+#     def get(self):
+#         """get the flag indicating whether there is an obstacle ahead of ego vehicle"""
+#         return self.obstacle_ahead
+#
+#
+#     def clear(self):
+#         """clear the flag"""
+#         self.obstacle_ahead = False

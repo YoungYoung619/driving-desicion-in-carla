@@ -102,6 +102,7 @@ def respawn_actors(world, actors):
 def try_spawn_random_vehicle_at(world, transform, autopilot=True):
     blueprints = world.get_blueprint_library().filter('vehicle.*')
     if not autopilot:
+        blueprints = world.get_blueprint_library().filter('vehicle.nissan.micra')
         blueprints = [x for x in blueprints if int(x.get_attribute('number_of_wheels')) == 4]
     blueprint = random.choice(blueprints)
     if blueprint.has_attribute('color'):
