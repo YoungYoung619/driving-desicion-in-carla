@@ -3,7 +3,7 @@ Copyright (c) College of Mechatronics and Control Engineering, Shenzhen Universi
 All rights reserved.
 
 Description :
-
+train a ddpg model for driving decision.
 
 Author：Team Li
 """
@@ -385,7 +385,7 @@ if __name__ == '__main__':
     cameras = []
     lane_invasions = []
     obj_collisions = []
-    obstacle_aheads = []
+    # obstacle_aheads = []
     logger.info('Adding some sensors to egopilots...')
     for egopilot in egopilots:
         ## attach a camera to egopilot ##
@@ -403,10 +403,10 @@ if __name__ == '__main__':
         lane_invasion_sensor = lane_invasion_query(world, invasion_sensor_config)
         lane_invasions.append(lane_invasion_sensor)
 
-        ## attach obstacle sensor to egopilot
-        obstacle_sensor_config['attach_to'] = egopilot
-        obstacle_sensor = obstacle_ahead_query(world, obstacle_sensor_config)
-        obstacle_aheads.append(obstacle_sensor)
+        # ## attach obstacle sensor to egopilot
+        # obstacle_sensor_config['attach_to'] = egopilot
+        # obstacle_sensor = obstacle_ahead_query(world, obstacle_sensor_config)
+        # obstacle_aheads.append(obstacle_sensor)
     logger.info('Adding some sensors to egopilots success')
 
     memory_pool = rl_tools.memory_pooling(maxlen=500)
