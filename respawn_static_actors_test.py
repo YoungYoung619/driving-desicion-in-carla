@@ -8,7 +8,6 @@ Description :
 Author：Team Li
 """
 import sys, glob, os
-from carla_utils.logging import logger
 from carla_utils.world_ops import *
 
 try:
