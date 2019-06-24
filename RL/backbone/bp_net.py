@@ -22,15 +22,19 @@ def bp(input, out_size):
     """
     n_featues = input.get_shape().as_list()[1]
     hidden1 = tf.layers.dense(input, n_featues*2)
-    # bn1_act = slim.batch_norm(hidden1, is_training=is_training, activation_fn=tf.nn.leaky_relu)
+    out1 = tf.nn.leaky_relu(hidden1)
+    # # out1 = slim.batch_norm(hidden1, is_training=is_training, activation_fn=tf.nn.leaky_relu)
+    #
 
-    hidden2 = tf.layers.dense(hidden1, n_featues)
-    # bn2_act = slim.batch_norm(hidden2, is_training=is_training, activation_fn=tf.nn.leaky_relu)
+    hidden2 = tf.layers.dense(out1, n_featues)
+    out2 = tf.nn.leaky_relu(hidden2)
+    # out2 = slim.batch_norm(hidden2, is_training=is_training, activation_fn=tf.nn.leaky_relu)
 
-    hidden3 = tf.layers.dense(hidden2, n_featues//2)
-    # bn2_act = slim.batch_norm(hidden3, is_training=is_training, activation_fn=tf.nn.leaky_relu)
+    # hidden3 = tf.layers.dense(out2, n_featues//2)
+    # out3 = tf.nn.leaky_relu(hidden3)
+    # out3 = slim.batch_norm(hidden3, is_training=is_training, activation_fn=tf.nn.leaky_relu)
 
-    hidden4 = tf.layers.dense(hidden3, out_size)
-    output = tf.nn.tanh(hidden4)
+    hidden3 = tf.layers.dense(out2, out_size)
+    output = tf.nn.tanh(hidden3)
 
     return output
