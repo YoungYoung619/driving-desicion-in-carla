@@ -78,6 +78,80 @@ class memory_pooling(object):
         pass
 
 
+class balance_memory_pooling():
+    def __init__(self, max_capacity, n_class):
+        self.balance_memory = []
+        self.max_capacity = max_capacity
+        self.n_class = n_class
+        for i in range(n_class):
+            self.balance_memory.append([])
+
+        self.whether_max_capacity = False
+
+
+    def put(self, class_index, memory):
+        assert class_index < len(self.balance_memory)
+
+        if self.__total_capacity() >= self.max_capacity:
+            self.__del_memory_of_max_len()
+            self.balance_memory[class_index].append(memory)
+        else:
+            self.balance_memory[class_index].append(memory)
+
+
+    def __total_capacity(self):
+        l = 0
+        for memorys in self.balance_memory:
+            l += len(memorys)
+        return l
+
+
+    def __del_memory_of_max_len(self):
+        l = []
+        for memorys in self.balance_memory:
+            l.append(len(memorys))
+
+        index = int(np.argmax(np.array(l)))
+        self.balance_memory[index].pop(0)
+
+
+    def get_propotion(self):
+        l = []
+        for memorys in self.balance_memory:
+            l.append(len(memorys))
+
+        propotion = np.array(l)/ self.__total_capacity()
+        return propotion
+
+
+    def get(self, batch_size):
+        m = []
+        for memorys in self.balance_memory:
+            m += memorys
+
+        return random.sample(m, batch_size)
+
+
+    def capacity_bigger_than(self, val):
+        """judge whether the memory pooling capacity is bigger that a val
+        Args:
+            val: normally, is a int represents the batch size
+        Return:
+            bool var.
+        """
+        if self.__total_capacity() >= val:
+            return True
+        else:
+            return False
+
+    def is_balance(self):
+        propotion = float(np.max(np.array(self.get_propotion())))
+        if propotion < 0.15:
+            return True
+        else:
+            return False
+
+
 def normalize_rewards(rewards):
     """normalize the rewards
     Args:
