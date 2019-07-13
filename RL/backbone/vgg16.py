@@ -66,7 +66,7 @@ def vgg_16(inputs, is_training, n_dims, scope='vgg_16'):
                                                     'activation_fn': tf.nn.leaky_relu},
                                 scope='conv4')
                 net = slim.max_pool2d(net, [2, 2], scope='pool4')
-                net = slim.repeat(net, 1, slim.conv2d, 512, [3, 3],
+                net = slim.repeat(net, 1, slim.conv2d, 256, [3, 3],
                                 normalizer_fn=slim.batch_norm,
                                 normalizer_params={'is_training': is_training,
                                                     'activation_fn': tf.nn.leaky_relu},
@@ -79,5 +79,6 @@ def vgg_16(inputs, is_training, n_dims, scope='vgg_16'):
                                                      'activation_fn': tf.nn.leaky_relu},
                                   scope='fc6')
 
+                net = tf.reduce_max(net, axis=[1, 2])
                 end_points = slim.utils.convert_collection_to_dict(end_points_collection)
     return net, end_points
