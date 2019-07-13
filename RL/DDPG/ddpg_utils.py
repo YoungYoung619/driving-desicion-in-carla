@@ -20,8 +20,7 @@ class critic(object):
     def __init__(self):
         pass
 
-
-    def build_graph(self, state, action, is_training, var_scope):
+    def build_graph(self, img_state, other_state, action, is_training, var_scope):
         """build a action-value function approximation Q(s,a)
         Args:
             state: generally, a tensor with the shape(bs, h, w, c)
@@ -34,16 +33,13 @@ class critic(object):
         """
         with tf.variable_scope(var_scope) as scope:
             ## get the abstract of state
-            feat, endpoints = mobilenetv2(inputs=state, is_training=is_training)
-
-            ## get flaten state abstract
-            feat_flat = tf.reduce_max(feat, axis=[1,2])
+            feat, endpoints = vgg_16(inputs=img_state, n_dims=10, is_training=is_training)
 
             ## combine the state and action
-            state_action = tf.concat([feat_flat, action], axis=-1)
+            state_action = tf.concat([slim.softmax(feat), action, other_state], axis=-1)
 
             ## action state value
-            self.action_state_value = tf.reshape(bp(state_action, out_size=1), shape=[-1])
+            self.action_state_value = tf.reshape(bp(state_action, out_size=1, a_f=None), shape=[-1])
 
             ## get trainable vars
             self.trainable_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope=scope.name)
@@ -77,7 +73,7 @@ class actor(object):
 
             ## get the abstract of state
             with slim.arg_scope(vgg_arg_scope()):
-                outputs, end_points = mobilenetv2(inputs=img_state, n_dims=11, is_training=is_training)
+                outputs, end_points = vgg_16(inputs=img_state, n_dims=10, is_training=is_training)
 
             ## get flaten state abstract
             # feat_flat = tf.reduce_max(outputs, axis=[1, 2])
@@ -96,5 +92,6 @@ class actor(object):
             ## get trainable vars
             self.trainable_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope=scope.name)
 
-            return outputs, self.action, self.trainable_vars
+            # return outputs, self.action, self.trainable_vars ## this return is for imitator
+            return self.action, self.trainable_vars
 
