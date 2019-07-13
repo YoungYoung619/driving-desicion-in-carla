@@ -23,7 +23,7 @@ def actor_static(actor):
         a bool val respresents whether the actor is in static state
     """
     vel = actor.get_velocity()
-    if abs(vel.x) <= 1e-3 and abs(vel.y) <= 1e-3 and abs(vel.z) <= 1e-3:
+    if abs(vel.x) <= 0.3 and abs(vel.y) <= 0.3 and abs(vel.z) <= 0.3:
         return True
     else:
         return False
@@ -75,6 +75,9 @@ def respawn_static_actors(world, actors):
             index = random.randint(0, (len(spawn_points))-1)
             vehicle.set_transform(spawn_points[index])
             logger.info('Respawn '+str(vehicle)+' in '+str(spawn_points[index]))
+
+def respawn_all_actors(world, actors):
+    pass
 
 
 def respawn_actors(world, actors):
