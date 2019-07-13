@@ -40,7 +40,9 @@ class memory_pooling(object):
         self.lock.acquire()
         ## put memory, could not be interupted by other threads
         if len(self.memory) >= self.maxlen:
-            self.memory.pop(0) ## del the earliest memory
+            # del_i = random.randint(0, len(self.memory) - 1)
+            # self.memory.pop(del_i) ## random del a memory
+            self.memory.pop(0)  ## random del a memory
             self.memory.append(memory) ## put the newest memory
         else:
             self.memory.append(memory)
@@ -61,7 +63,7 @@ class memory_pooling(object):
 
 
     def get(self, batch_size):
-        """get some memory from memory pooling
+        """randomly get some memory from memory pooling
         Args:
             batch_size: an int
         Return:
@@ -78,8 +80,18 @@ class memory_pooling(object):
         pass
 
 
+    def get_history(self):
+        return np.array(self.memory)
+
+
 class balance_memory_pooling():
+    """this class will store different class of obj in a balance propotion"""
     def __init__(self, max_capacity, n_class):
+        """
+        Args:
+            max_capacity: max capacity
+            n_class: the number of class
+        """
         self.balance_memory = []
         self.max_capacity = max_capacity
         self.n_class = n_class
@@ -90,6 +102,11 @@ class balance_memory_pooling():
 
 
     def put(self, class_index, memory):
+        """
+        Args:
+            class_index: the index of class in this memory
+            memory: the memory you wanna store
+        """
         assert class_index < len(self.balance_memory)
 
         if self.__total_capacity() >= self.max_capacity:
@@ -100,6 +117,7 @@ class balance_memory_pooling():
 
 
     def __total_capacity(self):
+        """ query the capacity """
         l = 0
         for memorys in self.balance_memory:
             l += len(memorys)
@@ -107,15 +125,18 @@ class balance_memory_pooling():
 
 
     def __del_memory_of_max_len(self):
+        """del a memory of max len class"""
         l = []
         for memorys in self.balance_memory:
             l.append(len(memorys))
 
         index = int(np.argmax(np.array(l)))
-        self.balance_memory[index].pop(0)
+        del_i = random.randint(0,len(self.balance_memory[index])-1)
+        self.balance_memory[index].pop(del_i)
 
 
     def get_propotion(self):
+        """get propotion in different class"""
         l = []
         for memorys in self.balance_memory:
             l.append(len(memorys))
@@ -125,6 +146,7 @@ class balance_memory_pooling():
 
 
     def get(self, batch_size):
+        """random sample from all memory"""
         m = []
         for memorys in self.balance_memory:
             m += memorys
@@ -146,7 +168,7 @@ class balance_memory_pooling():
 
     def is_balance(self):
         propotion = float(np.max(np.array(self.get_propotion())))
-        if propotion < 0.15:
+        if propotion < 0.2:
             return True
         else:
             return False
@@ -221,18 +243,26 @@ def soft_copy_a2b(vars_a, vars_b, tau=1e-3):
     return copy_ops
 
 
+class exploration_noise(object):
+    """a exploration noise for continous control"""
+    def __init__(self, theta, mu=0., sigma=0.4, x0=0, dt=1e-1, n_steps_annealing=100000, size=3):
+        self.theta = theta
+        self.sigma = sigma
+        self.n_steps_annealing = n_steps_annealing
+        self.sigma_step = - self.sigma / float(self.n_steps_annealing)
+        self.x0 = x0
+        self.mu = mu
+        self.dt = dt
+        self.size = size
+
+    def generate(self, step):
+        sigma = max(0, self.sigma_step * step + self.sigma)
+        x = self.x0 + self.theta * (self.mu - self.x0) * self.dt + sigma * np.sqrt(self.dt) * np.random.normal(size=self.size)
+        self.x0 = x
+        return x
+
+
 if __name__ == '__main__':
-    memorys = memory_pooling(maxlen=100)
-
-    for i in range(300):
-        memorys.put([i,i,i,i,i])
-
-    memorys_ = memorys.get(batch_size=20)
-
-
-    raw_rewards = [m[3] for m in memorys_]
-
-    r = normalize_rewards(raw_rewards)
-    replace(memorys_, r)
-
-    pass
+    n = exploration_noise(10.)
+    for i in range(1000):
+        print(n.generate(i))
