@@ -60,9 +60,6 @@ light_state_encode = {'Green':np.array([1., 0., 0., 0.]).astype(np.float32),
                       'Unkown':np.array([0., 0., 0., 1.]).astype(np.float32)}
 
 
-
-
-
 def model(input, is_training):
     """user define model
     Args:
@@ -99,8 +96,8 @@ def control_thread(sess):
         for camera, egopilot in zip(cameras, egopilots):
             img = camera.get()
 
-            img = img[FLAGS.img_height//2:, FLAGS.img_width//5:4*FLAGS.img_width//5, :] ## corp the ROI
-            img = img*2./255. - 1.
+            raw_img = img[FLAGS.img_height//2:, FLAGS.img_width//5:4*FLAGS.img_width//5, :] ## corp the ROI
+            img = raw_img*2./255. - 1.
             img = cv2.resize(img, dsize=(224, 224))
 
             ego_v = egopilot.get_velocity()
@@ -116,6 +113,7 @@ def control_thread(sess):
             imgs.append(img)
             other_states.append(vehicle_state)
 
+        cv2.imshow('test', raw_img)
 
         acts = sess.run(action, feed_dict={input: np.array(imgs), other_state: np.array(other_states)})
 
@@ -127,7 +125,8 @@ def control_thread(sess):
             print(act)
             egopilot.apply_control(carla.VehicleControl(throttle=float(act[1]), steer=float(act[0]), brake=float(act[2])))
 
-        time.sleep(0.2)
+        # time.sleep(0.2)
+        cv2.waitKey(200)
 
         for obj_collision, egopilot in zip(obj_collisions, egopilots):
             if obj_collision.get():
@@ -140,7 +139,7 @@ if __name__ == '__main__':
     input = tf.placeholder(shape=[None, 224, 224, 3], dtype=tf.float32)
     other_state = tf.placeholder(shape=[None, 5], dtype=tf.float32)
     std_action = tf.placeholder(shape=[None, 3], dtype=tf.float32)
-    scene_label = tf.placeholder(shape=[None, 10], dtype=tf.int32)
+    scene_label = tf.placeholder(shape=[None, 9], dtype=tf.int32)
     global_step = tf.Variable(0, trainable=False, name='global_step')
     lr = tf.placeholder(dtype=tf.float32)
 
@@ -182,7 +181,7 @@ if __name__ == '__main__':
     destroy_all_actors(world)
 
     ##  spawn vehicles in carla world
-    spawn_vehicles(world, n_autopilots=1, n_egopilots=5)
+    spawn_vehicles(world, n_autopilots=0, n_egopilots=1)
     time.sleep(10)
 
     autopilots = get_all_autopilots(world)
@@ -227,5 +226,4 @@ if __name__ == '__main__':
 
         time.sleep(10)
         logger.info('check thread start ...')
-        c_t.start()
         a_t.join()

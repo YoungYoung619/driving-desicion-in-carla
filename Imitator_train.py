@@ -36,20 +36,20 @@ tf.app.flags.DEFINE_string(
     'The path to a checkpoint from which to fine-tune.')
 
 tf.app.flags.DEFINE_string(
-    'train_dir', './checkpoint/imitator',
+    'train_dir', './checkpoint',
     'Directory where checkpoints are written to.')
 
 tf.app.flags.DEFINE_integer(
-    'batch_size', 32, 'The number of samples in each batch.')
+    'batch_size', 50, 'The number of samples in each batch.')
 
 tf.app.flags.DEFINE_float('learning_rate', 3e-2, 'Initial learning rate.')
 
 tf.app.flags.DEFINE_integer(
-    'f_log_step', 50,
+    'f_log_step', 10,
     'The frequency with which logs are print.')
 
 tf.app.flags.DEFINE_integer(
-    'f_save_step', 10000,
+    'f_save_step', 2000,
     'The frequency with which summaries are saved, in step.')
 
 tf.app.flags.DEFINE_integer(
@@ -66,7 +66,7 @@ slim = tf.contrib.slim
 
 bgr_camera_config = {'data_type': 'sensor.camera.rgb', 'image_size_x': FLAGS.img_width,
                      'image_size_y': FLAGS.img_height, 'fov': 110, 'sensor_tick': 0.02,
-                     'transform': carla.Transform(carla.Location(x=1.0, z=1.8)),
+                     'transform': carla.Transform(carla.Location(x=0., z=1.7)),
                      'attach_to':None}
 collision_sensor_config = {'data_type': 'sensor.other.collision','attach_to': None}
 obstacle_sensor_config = {'data_type': 'sensor.other.obstacle', 'sensor_tick': 0.02,
@@ -78,28 +78,52 @@ light_state_encode = {'Green':np.array([1., 0., 0., 0.]).astype(np.float32),
                       'Unkown':np.array([0., 0., 0., 1.]).astype(np.float32)}
 
 
+# def steer_scene_classify(steer):
+#     """generate the winding one-hot groundtruth"""
+#     if steer >= -1. and steer < -0.5:
+#         return 0, np.eye(1, 10, k=0)[0].astype(np.int32)
+#     elif steer >= -0.5 and steer < -0.2:
+#         return 1, np.eye(1, 10, k=1)[0].astype(np.int32)
+#     elif steer >= -0.2 and steer < -0.1:
+#         return 2, np.eye(1, 10, k=2)[0].astype(np.int32)
+#     elif steer >= -0.1 and steer < -0.025:
+#         return 3, np.eye(1, 10, k=3)[0].astype(np.int32)
+#     elif steer >= -0.025 and steer < 0.025:
+#         return 4, np.eye(1, 10, k=4)[0].astype(np.int32)
+#     elif steer >= 0.25 and steer < 0.1:
+#         return 5, np.eye(1, 10, k=5)[0].astype(np.int32)
+#     elif steer >= 0.05 and steer < 0.1:
+#         return 6, np.eye(1, 10, k=6)[0].astype(np.int32)
+#     elif steer >= 0.1 and steer < 0.2:
+#         return 7, np.eye(1, 10, k=7)[0].astype(np.int32)
+#     elif steer >= 0.2 and steer < 0.5:
+#         return 8, np.eye(1, 10, k=8)[0].astype(np.int32)
+#     elif steer >= 0.5 and steer <= 1.:
+#         return 9, np.eye(1, 10, k=9)[0].astype(np.int32)
+
+
 def steer_scene_classify(steer):
     """generate the winding one-hot groundtruth"""
     if steer >= -1. and steer < -0.5:
-        return 0, np.eye(1, 11, k=0)[0].astype(np.int32)
+        return 0, np.eye(1, 9, k=0)[0].astype(np.int32)
     elif steer >= -0.5 and steer < -0.2:
-        return 1, np.eye(1, 11, k=1)[0].astype(np.int32)
+        return 1, np.eye(1, 9, k=1)[0].astype(np.int32)
     elif steer >= -0.2 and steer < -0.1:
-        return 2, np.eye(1, 11, k=2)[0].astype(np.int32)
-    elif steer >= -0.1 and steer < -0.05:
-        return 3, np.eye(1, 11, k=3)[0].astype(np.int32)
-    elif steer >= -0.05 and steer < 0.:
-        return 4, np.eye(1, 11, k=4)[0].astype(np.int32)
-    elif steer >= 0. and steer < 0.05:
-        return 5, np.eye(1, 11, k=5)[0].astype(np.int32)
-    elif steer >= 0.05 and steer < 0.1:
-        return 6, np.eye(1, 11, k=6)[0].astype(np.int32)
+        return 2, np.eye(1, 9, k=2)[0].astype(np.int32)
+    elif steer >= -0.1 and steer < -0.025:
+        return 3, np.eye(1, 9, k=3)[0].astype(np.int32)
+    elif steer >= -0.025 and steer < 0.025:
+        return 4, np.eye(1, 9, k=4)[0].astype(np.int32)
+    elif steer >= 0.025 and steer < 0.1:
+        return 5, np.eye(1, 9, k=5)[0].astype(np.int32)
     elif steer >= 0.1 and steer < 0.2:
-        return 7, np.eye(1, 11, k=7)[0].astype(np.int32)
+        return 6, np.eye(1, 9, k=6)[0].astype(np.int32)
     elif steer >= 0.2 and steer < 0.5:
-        return 8, np.eye(1, 11, k=8)[0].astype(np.int32)
+        return 7, np.eye(1, 9, k=7)[0].astype(np.int32)
     elif steer >= 0.5 and steer <= 1.:
-        return 9, np.eye(1, 11, k=9)[0].astype(np.int32)
+        return 8, np.eye(1, 9, k=8)[0].astype(np.int32)
+    else:
+        raise ValueError('Impossible!!')
 
 
 def model(input, is_training):
@@ -124,7 +148,7 @@ def single_execuate(target, args):
 def check_whether_respawn_actors(world, vehicles):
     """check whether to respawn the static acotors in a frequency"""
     while True:
-        if carla_actors_static(vehicles, bigger_than=0.8):
+        if carla_actors_static(vehicles, bigger_than=0.7):
             respawn_static_actors(world, vehicles)
         time.sleep(20)
 
@@ -141,78 +165,101 @@ def sample_thread(sess):
 
 
     while True:
-        for camera, obj_collision, egopilot in zip(cameras, obj_collisions, egopilots):
-            img = camera.get()
-            collision = obj_collision.get()
+        if not random_drive:
+            logger.info('normal sample')
+            for camera, obj_collision, egopilot in zip(cameras, obj_collisions, egopilots):
+                img = camera.get()
+                collision = obj_collision.get()
 
-            if collision:
-                obj_collision.clear()
-                ## if collision skip this memory
-                single_execuate(target=respawn_actors, args=(world, [egopilot],))
-                continue
+                if collision:
+                    obj_collision.clear()
+                    ## if collision skip this memory
+                    single_execuate(target=respawn_actors, args=(world, [egopilot],))
 
-            # cv2.imshow('test', img)
+                    ## init the history of action
+                    continue
 
-            # img = img[FLAGS.img_height//2:, FLAGS.img_width//5:4*FLAGS.img_width//5, :] ## corp the ROI
-            img = img*2./255. - 1.
-            img = cv2.resize(img, dsize=(224, 224))
+                cv2.imshow('test', img)
 
-            std_steer = egopilot.get_control().steer
-            std_throttle = egopilot.get_control().throttle
-            std_brake = egopilot.get_control().brake
+                img = img[int(FLAGS.img_height*1.8//5):, :, :] ## corp the ROI
+                cv2.imshow('test1', img)
+                img = img*2./255. - 1.
+                img = cv2.resize(img, dsize=(418, 418))
+                cv2.imshow('test2', img)
 
-            scene_class, steer_scene_encode = steer_scene_classify(steer=std_steer)
+                std_steer = egopilot.get_control().steer
+                std_throttle = egopilot.get_control().throttle
+                std_brake = egopilot.get_control().brake
+                # print(std_steer)
+                scene_class, steer_scene_encode = steer_scene_classify(steer=std_steer)
 
-            # if std_steer<0.05 and std_steer>-0.05:
-            #     a = random.uniform(0,1)
-            #     if a < 0.8:
-            #         continue
+                # if std_steer<0.05 and std_steer>-0.05:
+                #     a = random.uniform(0,1)
+                #     if a < 0.8:
+                #         continue
 
-            ego_v = egopilot.get_velocity()
-            ego_v_ = math.sqrt(ego_v.x ** 2 + ego_v.x ** 2 + ego_v.x ** 2)
-            ego_v = ego_v_ / egopilot.get_speed_limit()
+                ego_v = egopilot.get_velocity()
+                ego_v_ = math.sqrt(ego_v.x ** 2 + ego_v.y ** 2 + ego_v.z ** 2)
+                ego_v = ego_v_ / egopilot.get_speed_limit()
 
-            if egopilot.is_at_traffic_light() and not whether_wait_red_light[egopilot]:
-                ## mean first go into traffic light area
-                if str(egopilot.get_traffic_light_state()) == 'Green':
-                    # print('Green, straght forward')
-                    scene_class = 10 ## mean straght forward
-                elif str(egopilot.get_traffic_light_state()) == 'Red':
-                    # print('Red, Stop')
-                    whether_wait_red_light[egopilot] = True
-                    scene_class = 11 ## mean need to stop
-                light_state = light_state_encode[str(egopilot.get_traffic_light_state())]
-            elif whether_wait_red_light[egopilot]:
-                if str(egopilot.get_traffic_light_state()) == 'Green':
-                    whether_wait_red_light[egopilot] = False
-                    # print('Red to Green, I can go now')
-                    std_throttle = 1.
-                    std_brake = 0.
-                    # print('throttle:', std_throttle)
-                    # print('brake:', std_brake)
-                    scene_class = 12 ## mean red to green
-                elif str(egopilot.get_traffic_light_state()) == 'Red':
-                    # print('Still Red, wait for green')
-                    whether_wait_red_light[egopilot] = True
-                    scene_class = 11 ## mean need to stop
-                light_state = light_state_encode[str(egopilot.get_traffic_light_state())]
-            else:
-                if ego_v_ < 1e-3:   ## imitate ahead obstcle
-                    steer_scene_encode = np.eye(1, 11, k=10)[0].astype(np.int32)
-                    # print("stop!!!")
-                # else:
-                #     print('go forward')
-                light_state = light_state_encode['Unkown']
+                if egopilot.is_at_traffic_light() and not whether_wait_red_light[egopilot]:
+                    ## mean first go into traffic light area
+                    if str(egopilot.get_traffic_light_state()) == 'Green':
+                        # print('Green, straght forward')
+                        scene_class = 9 ## mean straght forward
+                    elif str(egopilot.get_traffic_light_state()) == 'Red':
+                        # print('Red, Stop')
+                        whether_wait_red_light[egopilot] = True
+                        scene_class = 10 ## mean need to stop
+                    light_state = light_state_encode[str(egopilot.get_traffic_light_state())]
+                elif whether_wait_red_light[egopilot]:
+                    if str(egopilot.get_traffic_light_state()) == 'Green':
+                        whether_wait_red_light[egopilot] = False
+                        # print('Red to Green, I can go now')
+                        std_throttle = 1.
+                        std_brake = 0.
+                        # print('throttle:', std_throttle)
+                        # print('brake:', std_brake)
+                        scene_class = 11 ## mean red to green
+                    elif str(egopilot.get_traffic_light_state()) == 'Red':
+                        # print('Still Red, wait for green')
+                        # whether_wait_red_light[egopilot] = True
+                        scene_class = 10 ## mean need to stop
+                    light_state = light_state_encode[str(egopilot.get_traffic_light_state())]
+                else:
+                    # if ego_v_ < 1e-3:   ## imitate ahead obstcle
+                    #     steer_scene_encode = np.eye(1, 11, k=10)[0].astype(np.int32)
+                    #     # print("stop!!!")
+                    # # else:
+                    # #     print('go forward')
+                    light_state = light_state_encode['Unkown']
 
-            std_action = np.array([std_steer, std_throttle, std_brake])
-            other_state = np.concatenate([light_state, np.array([ego_v])], axis=-1)
+                std_action = np.array([std_steer, std_throttle, std_brake])
+                other_state = np.concatenate([light_state, np.array([ego_v])], axis=-1)
 
-            memory_pool.put(memory=[img.astype(np.float32), other_state.astype(np.float32), std_action.astype(np.float32), steer_scene_encode],
-                            class_index=scene_class)
-        time.sleep(0.2)
+                # memory_pool.put(memory=[img.astype(np.float32), other_state.astype(np.float32), std_action.astype(np.float32),
+                #                         steer_scene_encode])
+                memory_pool.put(memory=[img.astype(np.float32), other_state.astype(np.float32), std_action.astype(np.float32), steer_scene_encode],
+                                class_index=scene_class)
+        else:
+            logger.info('not sample')
+            for camera, obj_collision, egopilot in zip(cameras, obj_collisions, egopilots):
+                img = camera.get()
+                collision = obj_collision.get()
 
-        # print(memory_pool.get_propotion())
+                if collision:
+                    obj_collision.clear()
+                    ## if collision skip this memory
+                    single_execuate(target=respawn_actors, args=(world, [egopilot],))
 
+                    ## init the history of action
+                    continue
+
+                cv2.imshow('test', img)
+
+        # time.sleep(0.2)
+        cv2.waitKey(200)
+        #print(memory_pool.get_propotion())
         if begin and memory_pool.is_balance():
             begin = False
             update_event.set()
@@ -247,7 +294,7 @@ def update_thread(sess):
             actions.append(memory[2])
             scene_labels.append(memory[3])
 
-        if current_step < 60000:
+        if current_step < 20000:
             op, clf_l, ops_l, current_step = sess.run([update_ops, clf_loss, ops_loss, global_step], feed_dict={input: np.array(imgs),
                                                                                               other_state: np.array(
                                                                                                   other_states),
@@ -259,7 +306,7 @@ def update_thread(sess):
             # op, net_loss, current_step = sess.run([update_ops, clf_loss, global_step], feed_dict={input: np.array(imgs),
             #                                                                                   scene_label:np.array(scene_labels),
             #                                                                                   lr: FLAGS.learning_rate})
-        elif current_step < 120000:
+        elif current_step < 40000:
             op, clf_l, ops_l, current_step = sess.run([update_ops, clf_loss, ops_loss, global_step], feed_dict={input: np.array(imgs),
                                                                                               other_state: np.array(
                                                                                                   other_states),
@@ -272,7 +319,7 @@ def update_thread(sess):
             #                                                                                   scene_label: np.array(
             #                                                                                       scene_labels),
             #                                                                                   lr: FLAGS.learning_rate/10})
-        elif current_step < 8000000:
+        elif current_step < 3000000:
             op, clf_l, ops_l, current_step = sess.run([update_ops, clf_loss, ops_loss, global_step], feed_dict={input: np.array(imgs),
                                                                                                                 other_state: np.array(other_states),
                                                                                                                 std_action: np.array(actions),
@@ -283,18 +330,21 @@ def update_thread(sess):
             #                                                                                       scene_labels),
             #                                                                                   lr: FLAGS.learning_rate/100})
         else:
-            break
+            print(current_step)
+            raise ValueError('!!')
 
         if FLAGS.f_log_step != None:
             ## caculate average loss ##
             step = current_step % FLAGS.f_log_step
             avg_ops_loss = (avg_ops_loss * step + ops_l) / (step + 1.)
             avg_clf_loss = (avg_clf_loss * step + clf_l) / (step + 1.)
-            if current_step % FLAGS.f_log_step == FLAGS.f_log_step - 1:
+            if step == FLAGS.f_log_step - 1:
                 logger.info('Step%s ops_loss:%s clf_loss:%s' % (str(current_step), str(avg_ops_loss), str(avg_clf_loss)))
 
         if FLAGS.f_save_step != None:
             if current_step % FLAGS.f_save_step == FLAGS.f_save_step - 1:
+                logger.info('propotion:' + str(memory_pool.get_propotion()))
+
                 ## save model ##
                 logger.info('Saving model...')
                 model_name = os.path.join(FLAGS.train_dir, 'imitator.model')
@@ -302,11 +352,29 @@ def update_thread(sess):
                 logger.info('Save model sucess...')
 
 
+def random_noise_thread():
+    """a thread random add vehicle ops noise"""
+    global  random_drive
+    while True:
+        logger.info('Start random drive...')
+        random_drive = True
+        respawn_actors(world, egopilots)
+        for egopilot in egopilots:
+            egopilot.set_autopilot(False)
+        time.sleep(3) ## wait a moment
+
+        for egopilot in egopilots:
+            logger.info('Stop random drive...')
+            egopilot.set_autopilot(True)
+        random_drive = False
+
+        time.sleep(5)
+
 if __name__ == '__main__':
     input = tf.placeholder(shape=[None, 224, 224, 3], dtype=tf.float32)
     other_state = tf.placeholder(shape=[None, 5], dtype=tf.float32)
     std_action = tf.placeholder(shape=[None, 3], dtype=tf.float32)
-    scene_label = tf.placeholder(shape=[None, 11], dtype=tf.int32)
+    scene_label = tf.placeholder(shape=[None, 9], dtype=tf.int32)
     global_step = tf.Variable(0, trainable=False, name='global_step')
     lr = tf.placeholder(dtype=tf.float32)
 
@@ -317,7 +385,7 @@ if __name__ == '__main__':
 
     ops_loss = tf.reduce_sum(tf.square(action - std_action))
 
-    loss = clf_loss + 100.*ops_loss
+    loss = 0.001*clf_loss + 10*ops_loss
 
     ## UPDATE OPS ##
     bn_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
@@ -348,7 +416,7 @@ if __name__ == '__main__':
     destroy_all_actors(world)
 
     ##  spawn vehicles in carla world
-    spawn_vehicles(world, n_autopilots=40, n_egopilots=10)
+    spawn_vehicles(world, n_autopilots=0, n_egopilots=1)
     time.sleep(10)
 
     autopilots = get_all_autopilots(world)
@@ -356,6 +424,8 @@ if __name__ == '__main__':
 
     cameras = []
     obj_collisions = []
+    histories_speed = []
+    histories_steer = []
     logger.info('Adding some sensors to egopilots...')
     for egopilot in egopilots:
         ## attach a camera to egopilot ##
@@ -368,15 +438,29 @@ if __name__ == '__main__':
         collision_sensor = collision_query(world, collision_sensor_config)
         obj_collisions.append(collision_sensor)
 
+        # ## history data
+        # history_speed = rl_tools.memory_pooling(maxlen=10)  ## store the past 2s speed
+        # history_steer = rl_tools.memory_pooling(maxlen=10)  ## store the past 2s steer
+        # ## init
+        # for i in range(10):
+        #     history_speed.put(0.)
+        #     history_steer.put(0.)
+        # histories_speed.append(history_speed)
+        # histories_steer.append(history_steer)
+
 
     logger.info('Adding some sensors to egopilots success')
 
-    # memory_pool = rl_tools.memory_pooling(maxlen=1000)
-    memory_pool = rl_tools.balance_memory_pooling(max_capacity=1300, n_class=13)
+
+    # memory_pool = rl_tools.memory_pooling(maxlen=10000)
+    memory_pool = rl_tools.balance_memory_pooling(max_capacity=2600, n_class=12)
     update_event = threading.Event()
 
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
+
+    random_drive = False
+
     with tf.Session(config=config) as sess:
         if ckpt:
             logger.info('loading %s...' % str(ckpt.model_checkpoint_path))
@@ -390,11 +474,14 @@ if __name__ == '__main__':
         s_t = threading.Thread(target=sample_thread, args=(sess,))
         u_t = threading.Thread(target=update_thread, args=(sess,))
         c_t = threading.Thread(target=check_whether_respawn_actors, args=(world, autopilots+egopilots,))
+        n_t = threading.Thread(target=random_noise_thread)
         s_t.daemon = True
         u_t.daemon = True
         c_t.daemon = True
+        n_t.daemon = True
         s_t.start()
-        c_t.start()
-        u_t.start()
+        # c_t.start()
+        # u_t.start()
+        # n_t.start()
 
-        c_t.join()
+        s_t.join()
