@@ -9,6 +9,8 @@ Author：Team Li
 """
 import random, time
 from carla_utils.logging import logger
+import sys
+import carla
 
 """
 #####  User Recommended Functions  ####
@@ -72,7 +74,8 @@ def respawn_static_actors(world, actors):
     for vehicle in actors:
         if actor_static(vehicle):
             spawn_points = list(world.get_map().get_spawn_points())
-            index = random.randint(0, (len(spawn_points))-1)
+            # index = random.randint(0, (len(spawn_points))-1)
+            index = 45
             vehicle.set_transform(spawn_points[index])
             logger.info('Respawn '+str(vehicle)+' in '+str(spawn_points[index]))
 
@@ -95,11 +98,61 @@ def respawn_actors(world, actors):
             respawn_static_actors(vehicles)
     """
     for vehicle in actors:
+        v = vehicle.get_velocity()
+        a_v = vehicle.get_angular_velocity()
+
+        v.x = 0.
+        v.y = 0.
+        v.z = 0.
+
+        a_v.x = 0.
+        a_v.y = 0.
+        a_v.z = 0.
+
+        vehicle.set_velocity(v)
+        vehicle.set_angular_velocity(a_v)
+        vehicle.apply_control(carla.VehicleControl(throttle=0, steer=0, brake=0))
         spawn_points = list(world.get_map().get_spawn_points())
         index = random.randint(0, (len(spawn_points))-1)
-        spawn_points[index].location.z = spawn_points[index].location.z - 0.1
+        # index = 45
+        spawn_points[index].location.z = spawn_points[index].location.z
+        spawn_points[index].location.z = 0.001
         vehicle.set_transform(spawn_points[index])
         #logger.info('Respawn '+str(vehicle)+' in '+str(spawn_points[index]))
+
+
+def respawn_actor_at(world, actor, transform):
+    """re-spawn all the actors in the carla world
+    Args:
+        world: client.get_world()
+        actors:world.get_actors()
+    Example:
+        client = carla.Client('127.0.0.1', 2000)
+        client.set_timeout(10.0) # seconds
+
+        actor_list = world.get_actors()
+        vehicles = list(actor_list.filter('vehicle*'))
+        if carla_actors_static(vehicles):
+            respawn_static_actors(vehicles)
+    """
+
+    v = actor.get_velocity()
+    a_v = actor.get_angular_velocity()
+
+    v.x = 0.
+    v.y = 0.
+    v.z = 0.
+
+    a_v.x = 0.
+    a_v.y = 0.
+    a_v.z = 0.
+
+    actor.set_velocity(v)
+    actor.set_angular_velocity(a_v)
+    actor.apply_control(carla.VehicleControl(throttle=0, steer=0, brake=0))
+
+    actor.set_transform(transform)
+    #logger.info('Respawn '+str(vehicle)+' in '+str(spawn_points[index]))
 
 
 def try_spawn_random_vehicle_at(world, transform, autopilot=True):
@@ -202,6 +255,16 @@ def spawn_vehicles(world, n_autopilots, n_egopilots, n_pedestrains=0):
                 count -= 1
 
 
+def spawn_egopilot_at(world, transform):
+    blueprints = world.get_blueprint_library().filter('vehicle.nissan.micra')
+    blueprints = [x for x in blueprints if int(x.get_attribute('number_of_wheels')) == 4]
+    blueprint = random.choice(blueprints)
+    blueprint.set_attribute('role_name', 'egopilot')
+    vehicle = world.try_spawn_actor(blueprint, transform)
+    vehicle.set_autopilot(False)
+    return vehicle
+
+
 def get_all_autopilots(world):
     """get all the autopilot vehicles in carla world
     Return:
@@ -238,9 +301,9 @@ def destroy_all_actors(world):
     vehicles = list(actor_list.filter('vehicle*'))
     for vehicle in vehicles:
         vehicle.destroy()
-    logger.info('Destroy all vehicles...')
+    # logger.info('Destroy all vehicles...')
 
     sensors = list(actor_list.filter('sensor*'))
     for sensor in sensors:
         sensor.destroy()
-    logger.info('Destroy all sensors...')
+    # logger.info('Destroy all sensors...')
