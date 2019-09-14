@@ -11,11 +11,9 @@ import numpy as np
 import sys, glob, os
 from carla_utils.logging import logger
 
+
 try:
-    sys.path.append(glob.glob('**/carla-*%d.%d-%s.egg' % (
-        sys.version_info.major,
-        sys.version_info.minor,
-        'win-amd64' if os.name == 'nt' else 'linux-x86_64'))[0])
+    sys.path.append('F:\my_project\driving-desicion-in-carla\dist/carla-0.9.4-py3.7-win-amd64.egg')
     import carla
     from carla import ColorConverter as cc
 except:
@@ -259,9 +257,9 @@ class lane_invasion_query(object):
 
     def __on_invasion(self, event):
         """ would be call when ego vehicle collision"""
-        text = ['%r' % str(x).split()[-1] for x in set(event.crossed_lane_markings)]
-        if text[0] == "'Solid'":
-            self.lane_invasion = True
+        # text = ['%r' % str(x).split()[-1] for x in set(event.crossed_lane_markings)]
+        # if text[0] == "'Solid'":
+        self.lane_invasion = True
             # text = 'Crossed line %s' % ' and '.join(text)
             # logger.info(text)
 
