@@ -92,6 +92,7 @@ class balance_memory_pooling():
             max_capacity: max capacity
             n_class: the number of class
         """
+        assert n_class >= 2
         self.balance_memory = []
         self.max_capacity = max_capacity
         self.n_class = n_class
@@ -131,8 +132,8 @@ class balance_memory_pooling():
             l.append(len(memorys))
 
         index = int(np.argmax(np.array(l)))
-        del_i = random.randint(0,len(self.balance_memory[index])-1)
-        self.balance_memory[index].pop(del_i)
+        # del_i = random.randint(0,len(self.balance_memory[index])-1)
+        self.balance_memory[index].pop(0)
 
 
     def get_propotion(self):
@@ -168,7 +169,7 @@ class balance_memory_pooling():
 
     def is_balance(self):
         propotion = float(np.max(np.array(self.get_propotion())))
-        if propotion < 0.2:
+        if propotion < max(0.6, (1/self.n_class+0.1)):
             return True
         else:
             return False
@@ -245,7 +246,7 @@ def soft_copy_a2b(vars_a, vars_b, tau=1e-3):
 
 class exploration_noise(object):
     """a exploration noise for continous control"""
-    def __init__(self, theta, mu=0., sigma=0.4, x0=0, dt=1e-1, n_steps_annealing=100000, size=3):
+    def __init__(self, theta, mu=0., sigma=0.4, x0=0, dt=1e-1, n_steps_annealing=40000, size=3):
         self.theta = theta
         self.sigma = sigma
         self.n_steps_annealing = n_steps_annealing
