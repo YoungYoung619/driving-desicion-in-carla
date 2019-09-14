@@ -14,8 +14,10 @@ import cv2
 import RL.DDPG.ddpg_utils as ddpg
 import RL.rl_utils as rl_tools
 
-from multiprocessing import Process
-
+aa = glob.glob('**/carla-*%d.%d-%s.egg' % (
+        sys.version_info.major,
+        sys.version_info.minor,
+        'win-amd64' if os.name == 'nt' else 'linux-x86_64'))[0]
 try:
     sys.path.append(glob.glob('**/carla-*%d.%d-%s.egg' % (
         sys.version_info.major,
@@ -40,7 +42,7 @@ tf.app.flags.DEFINE_string(
     'Directory where checkpoints are written to.')
 
 tf.app.flags.DEFINE_integer(
-    'batch_size', 32, 'The number of samples in each batch.')
+    'batch_size', 20, 'The number of samples in each batch.')
 
 tf.app.flags.DEFINE_float('learning_rate', 1e-2, 'Initial learning rate.')
 
@@ -57,7 +59,7 @@ tf.app.flags.DEFINE_integer(
 'The frequency with which logs are print.')
 
 tf.app.flags.DEFINE_integer(
-    'n_egopilots', 1,
+    'n_egopilots', 10,
 'the number of egopilots')
 
 FLAGS = tf.app.flags.FLAGS
@@ -98,7 +100,7 @@ def gaussian_r(val, mu=30., sigma=10.):
 def check_whether_respawn_actors(world, vehicles):
     """check whether to respawn the static acotors in a frequency"""
     while True:
-        if carla_actors_static(vehicles, bigger_than=0.65):
+        if carla_actors_static(vehicles, bigger_than=0.75):
             respawn_static_actors(world, vehicles)
         time.sleep(20)
 
@@ -130,8 +132,8 @@ def target_thread(sess, online_begin_signal):
             img = camera_sensor.get()
             img = img[int(FLAGS.img_height*1.8//5):, :, :] ## corp the ROI
 
-            img = cv2.resize(img, dsize=(418, 418))
-            cv2.imshow('test', img)
+            img = cv2.resize(img, dsize=(80, 80))
+            # cv2.imshow('test', img)
             imgs.append(img)
 
             if egopilot.is_at_traffic_light() and not whether_wait_red_light[egopilot]:
@@ -167,7 +169,7 @@ def target_thread(sess, online_begin_signal):
         ## control the egopilots ##
         for egopilot, c_a in zip(egopilots, current_action):
             ## add exploration noise
-            c_a = np.clip(c_a+np.expand_dims(exploration_noise.generate(episode//FLAGS.n_egopilots), axis=0), a_min=[-1., 0., 0.], a_max=[1., 1., 1.])[0]
+            c_a = np.clip(c_a+np.expand_dims(5*exploration_noise.generate(episode//FLAGS.n_egopilots), axis=0), a_min=[-1., 0., 0.], a_max=[1., 1., 1.])[0]
 
             steer = float(c_a[0])
             throttle = float(c_a[1])
@@ -191,8 +193,8 @@ def target_thread(sess, online_begin_signal):
             c_a[2] = brake
         prev_prev_contrl = prev_contrl
         prev_contrl = current_action
-        cv2.waitKey(100)
-        # time.sleep(0.1) ## sleep for a while, let the action control the egopilots to next state
+        # cv2.waitKey(80)
+        time.sleep(0.1) ## sleep for a while, let the action control the egopilots to next state
 
         ## reward calculation
         r_s = np.zeros(shape=(len(egopilots)))
@@ -246,7 +248,7 @@ def target_thread(sess, online_begin_signal):
                 r_s[i] -= 15
                 lane_invasion.clear()
             i += 1
-        print('a_r:', r_s)
+        # print('a_r:', r_s)
 
         ## get next state
         imgs = []
@@ -254,7 +256,7 @@ def target_thread(sess, online_begin_signal):
         for camera_sensor, egopilot in zip(cameras, egopilots):
             img = camera_sensor.get()
             img = img[int(FLAGS.img_height*1.8//5):, :, :] ## corp the ROI
-            img = cv2.resize(img, dsize=(418, 418))
+            img = cv2.resize(img, dsize=(80, 80))
             imgs.append(img)
 
             if egopilot.is_at_traffic_light() and not whether_wait_red_light[egopilot]:
@@ -354,7 +356,7 @@ def online_thread(sess, online_begin_signal):
 
         ## update steer action ##
         # sess.run(online_actor_steer_update, feed_dict={online_action: current_action, online_img_state: current_state, std_steer: std_steer_ops,
-        #                                          lr:100.*FLAGS.learning_rate})
+        #                                          lr:80.*FLAGS.learning_rate})
 
         ## soft update the Online nets to Target nets
         sess.run([actor_soft_copy_ops, critic_soft_copy_ops])
@@ -374,12 +376,12 @@ if __name__ == '__main__':
     ########################### TENSORFLOW GRAPH ######################################
     logger.info('Tensorflow graph buliding...')
     ## target input ##
-    target_img_state = tf.placeholder(shape=[None, 418, 418, 3], dtype=tf.float32)
+    target_img_state = tf.placeholder(shape=[None, 80, 80, 3], dtype=tf.float32)
     target_other_state = tf.placeholder(shape=[None, 5], dtype=tf.float32)
     target_action = tf.placeholder(shape=[None, 3], dtype=tf.float32) ## steer, accel, brake
 
     ## online input ##
-    online_img_state = tf.placeholder(shape=[None, 418, 418, 3], dtype=tf.float32)
+    online_img_state = tf.placeholder(shape=[None, 80, 80, 3], dtype=tf.float32)
     online_other_state = tf.placeholder(shape=[None, 5], dtype=tf.float32)
     online_action = tf.placeholder(shape=[None, 3], dtype=tf.float32)
 
@@ -521,7 +523,7 @@ if __name__ == '__main__':
     destroy_all_actors(world)
 
     ##  spawn vehicles in carla world
-    spawn_vehicles(world, n_autopilots=0, n_egopilots=FLAGS.n_egopilots)
+    spawn_vehicles(world, n_autopilots=40, n_egopilots=FLAGS.n_egopilots)
     time.sleep(2) ## sometimes unstale
 
     autopilots = get_all_autopilots(world)
@@ -587,9 +589,9 @@ if __name__ == '__main__':
         # check_t.daemon = True
         # online_t.daemon = True
 
-        # check_t.start()
+        check_t.start()
         target_t.start()
-        # online_t.start()
+        online_t.start()
         while True:
             pass
     # destroy_all_actors(world)
