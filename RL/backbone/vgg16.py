@@ -43,38 +43,46 @@ def vgg_16(inputs, is_training, n_dims, scope='vgg_16'):
                             activation_fn = None,
                             weights_regularizer=slim.l2_regularizer(0.0005) ):
                 net = slim.repeat(inputs, 2, slim.conv2d, 64, [3, 3],
-                                normalizer_fn=slim.batch_norm,
+                                normalizer_fn=None,
                                 normalizer_params={'is_training': is_training,
                                                     'activation_fn':tf.nn.leaky_relu},
                                 scope='conv1')
                 net = slim.max_pool2d(net, [2, 2],scope='pool1')
                 net = slim.repeat(net, 2, slim.conv2d, 128, [3, 3],
-                                normalizer_fn=slim.batch_norm,
+                                normalizer_fn=None,
                                 normalizer_params={'is_training': is_training,
                                                     'activation_fn': tf.nn.leaky_relu},
                                 scope='conv2')
                 net = slim.max_pool2d(net, [2, 2], scope='pool2')
                 net = slim.repeat(net, 2, slim.conv2d, 256, [3, 3],
-                                normalizer_fn=slim.batch_norm,
+                                normalizer_fn=None,
                                 normalizer_params={'is_training': is_training,
                                                     'activation_fn': tf.nn.leaky_relu},
                                 scope='conv3')
                 net = slim.max_pool2d(net, [2, 2], scope='pool3')
                 net = slim.repeat(net, 1, slim.conv2d, 512, [3, 3],
-                                normalizer_fn=slim.batch_norm,
+                                normalizer_fn=None,
                                 normalizer_params={'is_training': is_training,
                                                     'activation_fn': tf.nn.leaky_relu},
                                 scope='conv4')
-                net = slim.max_pool2d(net, [2, 2], scope='pool4')
-                net = slim.repeat(net, 1, slim.conv2d, 256, [3, 3],
-                                normalizer_fn=slim.batch_norm,
-                                normalizer_params={'is_training': is_training,
-                                                    'activation_fn': tf.nn.leaky_relu},
-                                scope='conv5')
-                net = slim.max_pool2d(net, [2, 2], scope='pool5')
+                # net = slim.max_pool2d(net, [2, 2], scope='pool4')
+                # net = slim.repeat(net, 1, slim.conv2d, 256, [3, 3],
+                #                 normalizer_fn=slim.batch_norm,
+                #                 normalizer_params={'is_training': is_training,
+                #                                     'activation_fn': tf.nn.leaky_relu},
+                #                 scope='conv5')
+                # net = slim.max_pool2d(net, [2, 2], scope='pool5')
 
-                net = slim.conv2d(net, n_dims, [1, 1],
-                                  normalizer_fn=slim.batch_norm,
+                # net = slim.conv2d(net, n_dims, [1, 1],
+                #                   normalizer_fn=slim.batch_norm,
+                #                   normalizer_params={'is_training': is_training,
+                #                                      'activation_fn': tf.nn.leaky_relu},
+                #                   scope='fc6')
+
+
+                ##这是新加的，到时候删掉
+                net = slim.conv2d(net, n_dims, [3, 3],
+                                  normalizer_fn=None,
                                   normalizer_params={'is_training': is_training,
                                                      'activation_fn': tf.nn.leaky_relu},
                                   scope='fc6')
