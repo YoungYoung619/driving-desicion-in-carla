@@ -33,7 +33,7 @@ class critic(object):
         """
         with tf.variable_scope(var_scope) as scope:
             ## get the abstract of state
-            feat, endpoints = vgg_16(inputs=img_state, n_dims=10, is_training=is_training)
+            feat, endpoints = vgg_16(inputs=img_state, n_dims=100, is_training=is_training)
 
             ## combine the state and action
             state_action = tf.concat([slim.softmax(feat), action, other_state], axis=-1)
@@ -73,7 +73,7 @@ class actor(object):
 
             ## get the abstract of state
             with slim.arg_scope(vgg_arg_scope()):
-                outputs, end_points = vgg_16(inputs=img_state, n_dims=10, is_training=is_training)
+                outputs, end_points = vgg_16(inputs=img_state, n_dims=100, is_training=is_training)
 
             ## get flaten state abstract
             # feat_flat = tf.reduce_max(outputs, axis=[1, 2])
