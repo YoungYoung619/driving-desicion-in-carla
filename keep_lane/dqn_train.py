@@ -22,11 +22,11 @@ from carla_utils.world_ops import *
 from carla_utils.sensor_ops import *
 
 tf.app.flags.DEFINE_string(
-    'checkpoint_dir', '../checkpoint/keep_lane_world',
+    'checkpoint_dir', '../checkpoint',
     'The path to a checkpoint from which to fine-tune.')
 
 tf.app.flags.DEFINE_string(
-    'train_dir', '../checkpoint/',
+    'train_dir', '../checkpoint',
     'Directory where checkpoints are written to.')
 
 tf.app.flags.DEFINE_integer(
@@ -45,7 +45,7 @@ tf.app.flags.DEFINE_integer(
 'The frequency with which logs are print.')
 
 tf.app.flags.DEFINE_integer(
-    'f_save_step', 4000,
+    'f_save_step', 15000,
     'The frequency with which summaries are saved, in step.')
 
 tf.app.flags.DEFINE_integer(
@@ -60,11 +60,11 @@ tf.app.flags.DEFINE_integer(
     'raw image width captured from carla')
 
 tf.app.flags.DEFINE_integer(
-    'net_img_height', 224,
+    'net_img_height', 300,
     'image height of network input')
 
 tf.app.flags.DEFINE_integer(
-    'net_img_width', 224,
+    'net_img_width', 300,
     'raw image width of network input')
 
 tf.app.flags.DEFINE_integer(
@@ -72,7 +72,7 @@ tf.app.flags.DEFINE_integer(
     'total discrete action in steer')
 
 tf.app.flags.DEFINE_integer(
-    'e_desent_max_step', 50000,
+    'e_desent_max_step', 100000,
     '')
 
 tf.app.flags.DEFINE_float(
@@ -99,6 +99,8 @@ invasion_sensor_config = {'data_type': 'sensor.other.lane_detector', 'attach_to'
 obstacle_sensor_config = {'data_type': 'sensor.other.obstacle', 'sensor_tick': 0.02,
                           'distance': 3, 'attach_to': None}
 
+cornet_init_points = [12, 42, 63, 64, 70, 71, 72, 73, 86, 87, 94,
+                      95, 105, 106, 107, 108, 109, 119, 120, 121, 122]
 
 def gaussian_r(val, mu=30., sigma=10.):
     """calculate the reward of velocity
@@ -204,7 +206,7 @@ def target_thread(sess, online_begin_signal):
             i += 1
 
         # cv2.waitKey(1000)
-        time.sleep(0.5) ## sleep for a while, let the action control the egopilots to next state
+        time.sleep(0.75) ## sleep for a while, let the action control the egopilots to next state
 
         ## reward calculation
         r_s = np.zeros(shape=(len(egopilots)))  ## init is 0 reward
@@ -225,7 +227,7 @@ def target_thread(sess, online_begin_signal):
 
             ## make steer small as possible
             if v >= 0.1: ##m/s
-                r_s[i] += (10*(gaussian_r(egopilot.get_control().steer, mu=0., sigma=0.1)) - 5)
+                r_s[i] += (10*(gaussian_r(egopilot.get_control().steer, mu=0., sigma=0.3)) - 5)
             else:
                 r_s[i] = 0.
 
@@ -269,17 +271,31 @@ def target_thread(sess, online_begin_signal):
 
         ## check whether end.
         for egopilot, lane_invasion, obj_collision in zip(egopilots, lane_invasions, obj_collisions):
-            on_collision = obj_collision.get()
+            # on_collision = obj_collision.get()
             on_invasion = lane_invasion.get()
             # if on_collision:
             #     obj_collision.clear()
             #     single_execuate(target=respawn_actors, args=(world, [egopilot],))
 
             if on_invasion:
-                respawn_actors(world, [egopilot])
+                # respawn_actors(world, [egopilot])
+                i = random.uniform(0, 1)
+                if i >= 0.7:
+                    while True:
+                        index = random.sample(cornet_init_points, 1)
+                        if is_spawn_point_safe(egopilots, spawn_points[index[0]]):
+                            respawn_actor_at(world, egopilot, transform=spawn_points[index[0]])
+                            break
+                else:
+                    while True:
+                        index = random.randint(0, (len(spawn_points)) - 1)
+                        if is_spawn_point_safe(egopilots, spawn_points[index]):
+                            respawn_actor_at(world, egopilot, transform=spawn_points[index])
+                            break
+                        # respawn_actors(world, [egopilot])
                 # time.sleep(2.)
 
-        if begin and memory_pool.capacity_bigger_than(val=2000):
+        if begin and memory_pool.capacity_bigger_than(val=3500):
             begin = False
             online_begin_signal.set()
 
@@ -503,10 +519,11 @@ if __name__ == '__main__':
     memory_pool = rl_tools.memory_pooling(maxlen=4000)
     online_begin_signal = threading.Event()
 
+    spawn_points = list(world.get_map().get_spawn_points())
+
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
     with tf.Session(config=config) as sess:
-
         if ckpt:
             logger.info('loading %s...' % str(ckpt.model_checkpoint_path))
             saver.restore(sess, ckpt.model_checkpoint_path)
