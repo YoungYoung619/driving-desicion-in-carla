@@ -22,7 +22,7 @@ from carla_utils.world_ops import *
 from carla_utils.sensor_ops import *
 
 tf.app.flags.DEFINE_string(
-    'checkpoint_dir', '../checkpoint/keep_lane_world',
+    'checkpoint_dir', '../checkpoint/keep_lane_world/random_init',
     'The path to a checkpoint from which to fine-tune.')
 
 
@@ -94,9 +94,10 @@ def single_execuate(target, args):
 def check_whether_respawn_actors(world, vehicles):
     """check whether to respawn the static acotors in a frequency"""
     while True:
-        if carla_actors_static(vehicles, bigger_than=0.75):
-            respawn_static_actors(world, vehicles)
         time.sleep(5)
+        if carla_actors_static(vehicles, bigger_than=0.75):
+            # respawn_actor_at(world, vehicles[0], spawn_points[45])
+            respawn_static_actors(world, vehicles)
 
 
 def online_thread(sess):
