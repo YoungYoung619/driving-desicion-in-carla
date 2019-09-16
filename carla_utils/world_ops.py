@@ -9,13 +9,15 @@ Author：Team Li
 """
 import random, time
 from carla_utils.logging import logger
-import sys
+import sys, math
 import carla
 
 """
 #####  User Recommended Functions  ####
 --------------respawn_static_actors
 """
+
+cornet_init_points = [12, 42, 63, 64, 70, 71, 72, 73, 86, 87, 94, 95, 105, 106, 107, 108, 109, 119, 120, 121, 122]
 
 def actor_static(actor):
     """judge whether an actor is in static state
@@ -25,7 +27,7 @@ def actor_static(actor):
         a bool val respresents whether the actor is in static state
     """
     vel = actor.get_velocity()
-    if abs(vel.x) <= 0.3 and abs(vel.y) <= 0.3 and abs(vel.z) <= 0.3:
+    if abs(vel.x) <= 0.1 and abs(vel.y) <= 0.1 and abs(vel.z) <= 0.1:
         return True
     else:
         return False
@@ -74,13 +76,21 @@ def respawn_static_actors(world, actors):
     for vehicle in actors:
         if actor_static(vehicle):
             spawn_points = list(world.get_map().get_spawn_points())
-            # index = random.randint(0, (len(spawn_points))-1)
-            index = 45
+            index = random.randint(0, (len(spawn_points))-1)
+            # index = 45
             vehicle.set_transform(spawn_points[index])
             logger.info('Respawn '+str(vehicle)+' in '+str(spawn_points[index]))
 
 def respawn_all_actors(world, actors):
     pass
+
+def is_spawn_point_safe(actors_in_world, spawn_point):
+    for actor in actors_in_world:
+        location = actor.get_location()
+        distance = math.sqrt((location.x - spawn_point.location.x)**2 + (location.y - spawn_point.location.y)**2)
+        if distance >= 50:
+            return True
+    return False
 
 
 def respawn_actors(world, actors):
@@ -115,7 +125,7 @@ def respawn_actors(world, actors):
         spawn_points = list(world.get_map().get_spawn_points())
         index = random.randint(0, (len(spawn_points))-1)
         # index = 45
-        spawn_points[index].location.z = spawn_points[index].location.z
+        # spawn_points[index].location.z = spawn_points[index].location.z
         spawn_points[index].location.z = 0.001
         vehicle.set_transform(spawn_points[index])
         #logger.info('Respawn '+str(vehicle)+' in '+str(spawn_points[index]))
@@ -151,6 +161,7 @@ def respawn_actor_at(world, actor, transform):
     actor.set_angular_velocity(a_v)
     actor.apply_control(carla.VehicleControl(throttle=0, steer=0, brake=0))
 
+    transform.location.z = 0.001
     actor.set_transform(transform)
     #logger.info('Respawn '+str(vehicle)+' in '+str(spawn_points[index]))
 
@@ -265,6 +276,18 @@ def spawn_egopilot_at(world, transform):
     return vehicle
 
 
+def spawn_autopilot_at(world, transform):
+    blueprints = world.get_blueprint_library().filter('vehicle*')
+    blueprints = [x for x in blueprints if int(x.get_attribute('number_of_wheels')) == 4]
+    blueprint = random.choice(blueprints)
+    blueprint.set_attribute('role_name', 'autopilot')
+    vehicle = world.try_spawn_actor(blueprint, transform)
+    if not vehicle:
+        return None
+    vehicle.set_autopilot(False)
+    return vehicle
+
+
 def get_all_autopilots(world):
     """get all the autopilot vehicles in carla world
     Return:
@@ -307,3 +330,10 @@ def destroy_all_actors(world):
     for sensor in sensors:
         sensor.destroy()
     # logger.info('Destroy all sensors...')
+
+def destroy(actors):
+    try:
+        for actor in actors:
+            actor.destroy()
+    except:
+        pass
