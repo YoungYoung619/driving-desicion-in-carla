@@ -257,9 +257,9 @@ class lane_invasion_query(object):
 
     def __on_invasion(self, event):
         """ would be call when ego vehicle collision"""
-        # text = ['%r' % str(x).split()[-1] for x in set(event.crossed_lane_markings)]
-        # if text[0] == "'Solid'":
-        self.lane_invasion = True
+        text = ['%r' % str(x).split()[-1] for x in set(event.crossed_lane_markings)]
+        if text[0] == "'Solid'":
+            self.lane_invasion = True
             # text = 'Crossed line %s' % ' and '.join(text)
             # logger.info(text)
 
