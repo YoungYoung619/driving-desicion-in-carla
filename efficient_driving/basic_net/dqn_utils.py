@@ -34,6 +34,7 @@ class action_value_net(object):
         with tf.variable_scope(var_scope) as scope:
             ## get the abstract of state
             # feat, endpoints = mobilenetv2(inputs=img_state, n_dims=10*n_action, is_training=is_training)
+
             self.action_value, endpoints = mobilenetv2(inputs=img_state, n_dims=n_action, is_training=is_training)
 
             ## action state value
