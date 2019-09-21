@@ -10,7 +10,7 @@ Author：Team Li
 import tensorflow as tf
 import cv2, math, sys, random, threading
 
-from keep_lane.basic_net.dqn_utils import action_value_net
+from efficient_driving.basic_net.dqn_utils import action_value_net
 import RL.rl_utils as rl_tools
 
 from efficient_driving.scenario_generate_utils import *
@@ -63,15 +63,15 @@ tf.app.flags.DEFINE_integer(
     'raw image width captured from carla')
 
 tf.app.flags.DEFINE_integer(
-    'net_img_height', 224,
+    'net_img_height', 200,
     'image height of network input')
 
 tf.app.flags.DEFINE_integer(
-    'net_img_width', 224,
+    'net_img_width', 200,
     'raw image width of network input')
 
 tf.app.flags.DEFINE_integer(
-    'n_action', 21,
+    'n_action', 7,
     'total discrete action in steer')
 
 tf.app.flags.DEFINE_integer(
@@ -83,7 +83,7 @@ tf.app.flags.DEFINE_float(
     '')
 
 tf.app.flags.DEFINE_integer(
-    'target_update_f', 1000,
+    'target_update_f', 3000,
     '')
 
 FLAGS = tf.app.flags.FLAGS
@@ -128,8 +128,8 @@ def e_greedy(step, action_index):
         e = 1. - step*(1-FLAGS.e_min_val)/FLAGS.e_desent_max_step
         if r <= e:
             r_ = random.uniform(0., 1.)
-            if r_ >= 0.3:
-                action_index = 10
+            if r_ >= 0.7:
+                action_index = FLAGS.n_action//2
             else:
                 action_index = random.randint(0, FLAGS.n_action - 1)
             return action_index
@@ -212,7 +212,7 @@ def target_thread(sess, online_begin_signal):
         s_hm = produce_heat_map(egopilots[0], obstacles, hm_size=(FLAGS.net_img_height, FLAGS.net_img_width), h_type='safe')
         a_hm = produce_heat_map(egopilots[0], obstacles, hm_size=(FLAGS.net_img_height, FLAGS.net_img_width), h_type='attentive')
         d_hm = produce_heat_map(egopilots[0], obstacles, hm_size=(FLAGS.net_img_height, FLAGS.net_img_width), h_type='danger')
-        img = np.uint8(np.minimum(np.stack([s_hm, a_hm, d_hm], axis=-1)*255, 255))
+        img = np.uint8(np.minimum(np.stack([a_hm, s_hm, d_hm], axis=-1)*255, 255))
         # cv2.imshow('test', img)
         current_img_state = np.array([img])
         current_img_state = current_img_state*2./255. - 1.
@@ -240,7 +240,7 @@ def target_thread(sess, online_begin_signal):
             egopilot.apply_control(carla.VehicleControl(throttle=throttle, steer=steer, brake=brake))
             i += 1
 
-        # cv2.waitKey(300)
+        # cv2.waitKey(30)
         time.sleep(0.5) ## sleep for a while, let the action control the egopilots to next state
 
         ## reward calculation
@@ -280,13 +280,13 @@ def target_thread(sess, online_begin_signal):
             on_collision = obj_collision.get()
             on_invasion = lane_invasion.get()
             if on_collision:
-                r_s[i] -= 20.
+                r_s[i] -= 10.
                 end[i] = 1.
                 i += 1
                 continue
 
             if on_invasion:
-                r_s[i] -= 20.
+                r_s[i] -= 10.
                 end[i] = 1.
                 i += 1
                 continue
@@ -306,7 +306,7 @@ def target_thread(sess, online_begin_signal):
                                 h_type='attentive')
         d_hm = produce_heat_map(egopilots[0], obstacles, hm_size=(FLAGS.net_img_height, FLAGS.net_img_width),
                                 h_type='danger')
-        img = np.uint8(np.minimum(np.stack([s_hm, a_hm, d_hm], axis=-1) * 255, 255))
+        img = np.uint8(np.minimum(np.stack([a_hm, s_hm, d_hm], axis=-1) * 255, 255))
         # cv2.imshow('test', img)
         next_img_state = np.array([img])
         next_img_state = next_img_state * 2. / 255. - 1.
@@ -398,10 +398,10 @@ def update_thread(sess, online_begin_signal):
                 saver.save(sess, model_name, global_step=current_step)
                 logger.info('Save model sucess...')
 
-        sess.run(update_target_ops_soft)
-        # if current_step % FLAGS.target_update_f == FLAGS.target_update_f - 1:
-        #     # logger.info('dd')
-        #     sess.run(update_target_ops)
+        # sess.run(update_target_ops_soft)
+        if current_step % FLAGS.target_update_f == FLAGS.target_update_f - 1:
+            # logger.info('dd')
+            sess.run(update_target_ops)
 
 
 def vis_memory_thread():
@@ -459,7 +459,7 @@ if __name__ == '__main__':
                                                                       var_scope='online_act_val')
 
     act_val_net_target = action_value_net()
-    act_val_target, vars_target = act_val_net_online.build_graph(img_state=online_img_state, n_action=21,
+    act_val_target, vars_target = act_val_net_online.build_graph(img_state=online_img_state, n_action=FLAGS.n_action,
                                                                       is_training=True,
                                                                       var_scope='target_act_val')
     #########################################
