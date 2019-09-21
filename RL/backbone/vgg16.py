@@ -59,12 +59,12 @@ def vgg_16(inputs, is_training, n_dims, scope='vgg_16'):
                                 normalizer_params={'is_training': is_training,
                                                     'activation_fn': tf.nn.leaky_relu},
                                 scope='conv3')
-                net = slim.max_pool2d(net, [2, 2], scope='pool3')
-                net = slim.repeat(net, 1, slim.conv2d, 512, [3, 3],
-                                normalizer_fn=None,
-                                normalizer_params={'is_training': is_training,
-                                                    'activation_fn': tf.nn.leaky_relu},
-                                scope='conv4')
+                # net = slim.max_pool2d(net, [2, 2], scope='pool3')
+                # net = slim.repeat(net, 1, slim.conv2d, 512, [3, 3],
+                #                 normalizer_fn=None,
+                #                 normalizer_params={'is_training': is_training,
+                #                                     'activation_fn': tf.nn.leaky_relu},
+                #                 scope='conv4')
                 # net = slim.max_pool2d(net, [2, 2], scope='pool4')
                 # net = slim.repeat(net, 1, slim.conv2d, 256, [3, 3],
                 #                 normalizer_fn=slim.batch_norm,
