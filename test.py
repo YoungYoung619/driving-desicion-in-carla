@@ -400,24 +400,24 @@ import cv2
 #
 #         c_t.join()
 
-import math
-
-def gaussian_r(val, mu=65., sigma=30.):
-    """calculate the reward of velocity
-    Args:
-        vel: velocity, km/h
-    Return:
-        a reward
-    """
-    # if vel > 80:
-    #     return 5.
-
-    r = math.exp(-((val - mu) ** 2) / (2 * sigma ** 2))
-    return r
-
-
-for i in range(-10, 10, 1):
-    print(str(i/10)+'  '+str(10 * (gaussian_r(i/10, mu=0., sigma=0.3)) - 5))
+# import math
+#
+# def gaussian_r(val, mu=65., sigma=30.):
+#     """calculate the reward of velocity
+#     Args:
+#         vel: velocity, km/h
+#     Return:
+#         a reward
+#     """
+#     # if vel > 80:
+#     #     return 5.
+#
+#     r = math.exp(-((val - mu) ** 2) / (2 * sigma ** 2))
+#     return r
+#
+#
+# for i in range(-10, 10, 1):
+#     print(str(i/10)+'  '+str(10 * (gaussian_r(i/10, mu=0., sigma=0.3)) - 5))
 
 # spector_camera_config = {'data_type': 'sensor.camera.rgb', 'image_size_x': 626,
 #                      'image_size_y': 416, 'fov': 110, 'sensor_tick': 0.02,
@@ -474,6 +474,17 @@ for i in range(-10, 10, 1):
 #
 #     cv2.imwrite('./img/'+str(i)+'.jpg', sp_img)
 #     pass
+
+# import tensorflow as tf
+#
+# x = tf.Variable(100.)
+# e = tf.exp(x)
+# y = tf.log(1+e)
+# dy = tf.gradients(y,x)
+# with tf.Session() as sess:
+#     sess.run(tf.global_variables_initializer())
+#     print(sess.run(dy))
+print(2**3)
 
 
 
