@@ -26,7 +26,7 @@ from carla_utils.sensor_ops import *
 from heat_map import produce_heat_map
 
 tf.app.flags.DEFINE_string(
-    'checkpoint_dir', '',
+    'checkpoint_dir', '../checkpoint',
     'The path to a checkpoint from which to fine-tune.')
 
 tf.app.flags.DEFINE_string(
@@ -75,7 +75,7 @@ tf.app.flags.DEFINE_integer(
     'total discrete action in steer')
 
 tf.app.flags.DEFINE_integer(
-    'e_desent_max_step', 50000,
+    'e_desent_max_step', 80000,
     '')
 
 tf.app.flags.DEFINE_float(
@@ -83,7 +83,7 @@ tf.app.flags.DEFINE_float(
     '')
 
 tf.app.flags.DEFINE_integer(
-    'target_update_f', 3000,
+    'target_update_f', 4000,
     '')
 
 FLAGS = tf.app.flags.FLAGS
@@ -100,7 +100,7 @@ semantic_camera_config = {'data_type': 'sensor.camera.semantic_segmentation', 'i
 
 bgr_camera_config = {'data_type': 'sensor.camera.rgb', 'image_size_x': FLAGS.img_width,
                      'image_size_y': FLAGS.img_height, 'fov': 110, 'sensor_tick': 0.02,
-                     'transform': carla.Transform(carla.Location(x=-0.4, z=2)),
+                     'transform': carla.Transform(carla.Location(x=-0.6, z=2)),
                      'attach_to':None}
 
 collision_sensor_config = {'data_type': 'sensor.other.collision','attach_to': None}
@@ -128,7 +128,7 @@ def e_greedy(step, action_index):
         e = 1. - step*(1-FLAGS.e_min_val)/FLAGS.e_desent_max_step
         if r <= e:
             r_ = random.uniform(0., 1.)
-            if r_ >= 0.7:
+            if r_ >= 0.75:
                 action_index = FLAGS.n_action//2
             else:
                 action_index = random.randint(0, FLAGS.n_action - 1)
@@ -193,26 +193,35 @@ def target_thread(sess, online_begin_signal):
     global obstacles
     begin = True
 
-    avg_r = 0.
+    cul_r = 0.
 
     global_n_exceed_vehicle = 0
     local_n_exceed_vehicle = 0
     while True:
         ## get current state
         for camera_sensor, lane_invasion, obj_collision in zip(cameras, lane_invasions, obj_collisions):
-            # img = camera_sensor.get()
-            # img = img[int(FLAGS.img_height*2.3//5):, :, :] ## corp the ROI
-            #
-            # img = cv2.resize(img, dsize=(FLAGS.net_img_height, FLAGS.net_img_width))
-            # # cv2.imshow('test', img)
+            img = camera_sensor.get()
+            img = img[int(FLAGS.img_height*2.3//5):, :, :] ## corp the ROI
+
+            img_1 = cv2.resize(img, dsize=(FLAGS.net_img_height, FLAGS.net_img_width))
+            s_hm = produce_heat_map(egopilots[0], obstacles, hm_size=(FLAGS.net_img_height, FLAGS.net_img_width),
+                                    h_type='safe', consider_range=15)
+            a_hm = produce_heat_map(egopilots[0], obstacles, hm_size=(FLAGS.net_img_height, FLAGS.net_img_width),
+                                    h_type='attentive', consider_range=15)
+            d_hm = produce_heat_map(egopilots[0], obstacles, hm_size=(FLAGS.net_img_height, FLAGS.net_img_width),
+                                    h_type='danger', consider_range=15)
+            img_2 = np.uint8(np.minimum(np.stack([a_hm, s_hm, d_hm], axis=-1) * 255, 255))
+            img = np.concatenate([img_1, img_2], axis=-1)
+
+            # cv2.imshow('test', img_1)
             # imgs.append(img)
             lane_invasion.clear()
             obj_collision.clear()
 
-        s_hm = produce_heat_map(egopilots[0], obstacles, hm_size=(FLAGS.net_img_height, FLAGS.net_img_width), h_type='safe')
-        a_hm = produce_heat_map(egopilots[0], obstacles, hm_size=(FLAGS.net_img_height, FLAGS.net_img_width), h_type='attentive')
-        d_hm = produce_heat_map(egopilots[0], obstacles, hm_size=(FLAGS.net_img_height, FLAGS.net_img_width), h_type='danger')
-        img = np.uint8(np.minimum(np.stack([a_hm, s_hm, d_hm], axis=-1)*255, 255))
+        # s_hm = produce_heat_map(egopilots[0], obstacles, hm_size=(FLAGS.net_img_height, FLAGS.net_img_width), h_type='safe', consider_range=15)
+        # a_hm = produce_heat_map(egopilots[0], obstacles, hm_size=(FLAGS.net_img_height, FLAGS.net_img_width), h_type='attentive', consider_range=15)
+        # d_hm = produce_heat_map(egopilots[0], obstacles, hm_size=(FLAGS.net_img_height, FLAGS.net_img_width), h_type='danger', consider_range=15)
+        # img = np.uint8(np.minimum(np.stack([a_hm, s_hm, d_hm], axis=-1)*255, 255))
         # cv2.imshow('test', img)
         current_img_state = np.array([img])
         current_img_state = current_img_state*2./255. - 1.
@@ -249,20 +258,10 @@ def target_thread(sess, online_begin_signal):
         for i, egopilot in enumerate(egopilots):
             v = egopilot.get_velocity()
             v = math.sqrt(v.x ** 2 + v.y ** 2 + v.z ** 2)
-            #
-            # if v <= 6:
-            #     r_s[i] += v**2/6.
-            # elif v <= 8:
-            #     r_s[i] += 3 * (8 - v)
-            # else:
-            #     r_s[i] -= 2 * (v - 8) ** 2
-            #
-            # if egopilot.get_control().steer > 0.1 :
-            #     r_s[i] = 0
 
             ## make steer small as possible
             if v >= 0.1: ##m/s
-                r_s[i] += 5*(gaussian_r(egopilot.get_control().steer, mu=0., sigma=0.3))
+                r_s[i] += 1*(gaussian_r(egopilot.get_control().steer, mu=0., sigma=0.5))
             else:
                 r_s[i] = 0.
 
@@ -293,20 +292,23 @@ def target_thread(sess, online_begin_signal):
             i += 1
         # print('a_r:', r_s)
 
-        ## get next state
+        # get next state
         # imgs = []
-        # for camera_sensor, egopilot in zip(cameras, egopilots):
-        #     img = camera_sensor.get()
-        #     img = img[int(FLAGS.img_height*2.3//5):, :, :] ## corp the ROI
-        #     img = cv2.resize(img, dsize=(FLAGS.net_img_height, FLAGS.net_img_width))
-        #     imgs.append(img)
-        s_hm = produce_heat_map(egopilots[0], obstacles, hm_size=(FLAGS.net_img_height, FLAGS.net_img_width),
-                                h_type='safe')
-        a_hm = produce_heat_map(egopilots[0], obstacles, hm_size=(FLAGS.net_img_height, FLAGS.net_img_width),
-                                h_type='attentive')
-        d_hm = produce_heat_map(egopilots[0], obstacles, hm_size=(FLAGS.net_img_height, FLAGS.net_img_width),
-                                h_type='danger')
-        img = np.uint8(np.minimum(np.stack([a_hm, s_hm, d_hm], axis=-1) * 255, 255))
+        for camera_sensor, egopilot in zip(cameras, egopilots):
+            img = camera_sensor.get()
+            img = img[int(FLAGS.img_height*2.3//5):, :, :] ## corp the ROI
+            img_1 = cv2.resize(img, dsize=(FLAGS.net_img_height, FLAGS.net_img_width))
+            # imgs.append(img)
+
+            s_hm = produce_heat_map(egopilots[0], obstacles, hm_size=(FLAGS.net_img_height, FLAGS.net_img_width),
+                                    h_type='safe', consider_range=15)
+            a_hm = produce_heat_map(egopilots[0], obstacles, hm_size=(FLAGS.net_img_height, FLAGS.net_img_width),
+                                    h_type='attentive', consider_range=15)
+            d_hm = produce_heat_map(egopilots[0], obstacles, hm_size=(FLAGS.net_img_height, FLAGS.net_img_width),
+                                    h_type='danger', consider_range=15)
+            img_2 = np.uint8(np.minimum(np.stack([a_hm, s_hm, d_hm], axis=-1) * 255, 255))
+            img = np.concatenate([img_1, img_2], axis=-1)
+
         # cv2.imshow('test', img)
         next_img_state = np.array([img])
         next_img_state = next_img_state * 2. / 255. - 1.
@@ -314,8 +316,14 @@ def target_thread(sess, online_begin_signal):
         ## put the memory in pooling
         for c_img_state, c_action, n_img_state, c_r, end_f in zip(current_img_state,current_action,
                                                                                  next_img_state, r_s, end):
+            if c_r > 5:
+                c = 0
+            elif c_r > 0:
+                c = 1
+            else:
+                c = 2
             memory_pool.put(memory=[c_img_state.astype(np.float32), c_action, n_img_state.astype(np.float32),
-                                    c_r, end_f])
+                                    c_r, end_f], class_index=c)
 
         ## check whether end.
         for egopilot, lane_invasion, obj_collision in zip(egopilots, lane_invasions, obj_collisions):
@@ -330,8 +338,7 @@ def target_thread(sess, online_begin_signal):
                 local_n_exceed_vehicle = 0
                 pass
 
-
-        if begin and memory_pool.capacity_bigger_than(val=300):
+        if begin and memory_pool.capacity_bigger_than(val=1000):
             begin = False
             online_begin_signal.set()
 
@@ -339,10 +346,10 @@ def target_thread(sess, online_begin_signal):
         if FLAGS.log_every_n_steps != None:
             ## caculate average loss ##
             step = current_step % FLAGS.log_every_n_steps
-            avg_r = (avg_r * step + np.mean(np.array(r_s))) / (step + 1.)
+            cul_r += np.mean(np.array(r_s))
             if step == FLAGS.log_every_n_steps - 1:
-                logger.info('Step-%s:Reward:%s' % (str(current_step), str(round(avg_r,3))))
-                avg_r = 0.
+                logger.info('Step-%s:Reward:%s' % (str(current_step), str(round(cul_r,3))))
+                cul_r = 0.
 
 
 
@@ -444,8 +451,8 @@ def vis_memory_thread():
                 cv2.destroyAllWindows()
 
 if __name__ == '__main__':
-    online_img_state = tf.placeholder(shape=[None, FLAGS.net_img_height, FLAGS.net_img_width, 3], dtype=tf.float32)
-    target_img_state = tf.placeholder(shape=[None, FLAGS.net_img_height, FLAGS.net_img_width, 3], dtype=tf.float32)
+    online_img_state = tf.placeholder(shape=[None, FLAGS.net_img_height, FLAGS.net_img_width, 6], dtype=tf.float32)
+    target_img_state = tf.placeholder(shape=[None, FLAGS.net_img_height, FLAGS.net_img_width, 6], dtype=tf.float32)
 
     ## other input ##
     reward = tf.placeholder(shape=[None], dtype=tf.float32)
@@ -562,7 +569,7 @@ if __name__ == '__main__':
         # obstacle_aheads.append(obstacle_sensor)
     logger.info('Adding some sensors to egopilots success')
 
-    memory_pool = rl_tools.memory_pooling(maxlen=8000)
+    memory_pool = rl_tools.balance_memory_pooling(max_capacity=3000, n_class=3)
     online_begin_signal = threading.Event()
 
     spawn_points = list(world.get_map().get_spawn_points())
