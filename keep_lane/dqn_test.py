@@ -111,7 +111,7 @@ def online_thread(sess):
 
             img = cv2.resize(img, dsize=(FLAGS.net_img_height, FLAGS.net_img_width))
             sp_img = spector.get()
-            cv2.imshow('visualization', img)
+            cv2.imshow('visualization', sp_img)
             imgs.append(img)
 
         current_img_state = np.array(imgs)
